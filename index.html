@@ -106,7 +106,10 @@ select:disabled{opacity:.85}
 .card .tot{font-size:12px;color:var(--muted);margin-top:8px}.card .tot b{color:var(--ink);font-size:13px}
 .prc{font-size:13px;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.prc .wl{font-size:11.5px;color:var(--muted)}.prc b{font-variant-numeric:tabular-nums}.prc .pn{color:var(--muted);font-size:12px}
 .mv.fx{color:var(--accent)}
-.lnk a+a{margin-left:4px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.lnk a+a{margin-left:4px}
+.hp{display:flow-root}.pim{float:left;position:relative;width:72px;height:72px;margin:0 12px 6px 0;border-radius:8px}
+.pim .pup{width:72px;height:72px;padding:0;line-height:1.35;font-size:12px}.pim.none{border:1px dashed var(--line);background:var(--bg)}
+.pim.over,.proofs.over,.sbox.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft);border-radius:8px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
 .row.hs{grid-template-columns:minmax(0,1fr) 64px 220px}.row.hs>div:first-child{grid-row:span 2}
 .side{grid-column:2/-1;display:grid;gap:6px;align-content:start}
 .pay{display:flex;flex-wrap:wrap;gap:6px}
@@ -223,6 +226,10 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 // 링크: 첫 번째는 link, 나머지는 links 배열
 const linksOf=r=>[r.link,...(r.links||[])].filter(Boolean);
 const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return '링크'}};
+// 대여·구매 물품 대표 이미지 (pimg). 편집자는 눌러서 올리거나 끌어다 놓기
+function pimHTML(r){if(r.kind!=='buy'&&r.kind!=='rent')return '';const ed=assets&&ED();
+  if(r.pimg)return `<div class="pim"${ed?` data-dz="p:${r.id}"`:''}><button type="button" class="th" data-img="${esc(r.pimg)}" data-cap="${esc(r.name)}" aria-label="${esc(r.name)} 이미지 크게 보기"><img src="${esc(BLOB(r.pimg))}" alt="" loading="lazy"></button>${ed?`<button type="button" class="del" data-pdel="${r.id}" aria-label="${esc(r.name)} 이미지 삭제">×</button>`:''}</div>`;
+  return ed?`<div class="pim" data-dz="p:${r.id}"><button type="button" class="up pup" data-pup="${r.id}">이미지<br>추가</button></div>`:'<div class="pim none"></div>'}
 // 오른쪽 칸: 대여·구매는 결제 방식/세금계산서/결제 상태, 물품(디자인·대여·구매)은 메모
 function sideHTML(r){
   if(r.kind==='staff')return '';const ed=ED();let h='';
@@ -291,9 +298,9 @@ function render(){
   $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
-    const proofs=r.kind==='design'?`<div class="proofs">${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
-    if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r);
-    return `<div class="row${r.kind!=='staff'?' hs':''}"><div><div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+    const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
+    if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r),pim=pimHTML(r);
+    return `<div class="row${r.kind!=='staff'?' hs':''}"><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
   if(fm){const t=document.querySelector(`[data-memo="${fm.id}"]`);if(t){t.value=fm.v;t.focus();t.setSelectionRange(fm.a,fm.b)}}
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
@@ -310,13 +317,24 @@ $('#list').addEventListener('change',async e=>{if(!db)return;
 const lnInp=v=>`<input type="url" class="lni" value="${esc(v)}" placeholder="https://" aria-label="링크">`;
 $('#list').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList.contains('lni')){e.preventDefault();e.target.closest('.lned').querySelector('[data-lnsave]').click()}});
 const fileIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*,application/pdf',multiple:true});let upFor=null;
-fileIn.addEventListener('change',async()=>{const r=rows.find(x=>x.id===upFor);if(!r||!fileIn.files.length)return;$('#msg').textContent='올리는 중이에요…';
-  try{const ids=[...(r.imgs||[])];for(const f of fileIn.files){const res=await assets.upload(f);ids.push(res.id)}
+fileIn.addEventListener('change',async()=>{await proofUpload(upFor,fileIn.files);fileIn.value=''});
+async function proofUpload(id,files){const r=rows.find(x=>x.id===id);if(!r||!files.length)return;$('#msg').textContent='올리는 중이에요…';
+  try{const ids=[...(r.imgs||[])];for(const f of files){const res=await assets.upload(f);ids.push(res.id)}
     const grp=r.grp?rows.filter(x=>x.grp===r.grp):[r];
     for(const x of grp){const patch={imgs:ids};if((x.st||0)<1)patch.st=1;await db.doc('items/'+x.id).update(patch)}
     $('#msg').textContent=grp.length>1?`같은 디자인 ${grp.length}곳에 시안을 붙이고 디자인 완료로 표시했어요.`:'시안을 붙이고 디자인 완료로 표시했어요.'}
-  catch(err){$('#msg').textContent='올리지 못했어요 ('+(err&&err.code||'오류')+').'}fileIn.value=''});
+  catch(err){$('#msg').textContent='올리지 못했어요 ('+(err&&err.code||'오류')+').'}}
+const pimIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*'});let pimFor=null;
+pimIn.addEventListener('change',async()=>{await pimUpload(pimFor,pimIn.files[0]);pimIn.value=''});
+async function pimUpload(id,f){const r=rows.find(x=>x.id===id);if(!r||!f)return;if(!/^image\//.test(f.type)){$('#msg').textContent='이미지 파일만 넣을 수 있어요.';return}
+  $('#msg').textContent='이미지 올리는 중이에요…';const old=r.pimg;
+  try{const res=await assets.upload(f);await db.doc('items/'+id).update({pimg:res.id});$('#msg').textContent='이미지를 넣었어요.';if(old&&assets){try{await assets.delete(old)}catch(_){}}}
+  catch(err){$('#msg').textContent='올리지 못했어요 ('+(err&&err.code||'오류')+').'}}
 $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up]');if(u){upFor=u.dataset.up;fileIn.click();return}
+  const pu=e.target.closest('[data-pup]');if(pu){pimFor=pu.dataset.pup;pimIn.click();return}
+  const pd=e.target.closest('[data-pdel]');if(pd){if(!pd.dataset.arm){pd.dataset.arm='1';pd.textContent='삭제';pd.classList.add('arm');setTimeout(()=>{if(pd.isConnected){delete pd.dataset.arm;pd.textContent='×';pd.classList.remove('arm')}},3000);return}
+    const r=rows.find(x=>x.id===pd.dataset.pdel);if(!r)return;const old=r.pimg;
+    try{await db.doc('items/'+r.id).update({pimg:''});$('#msg').textContent='이미지를 지웠어요.';if(old&&assets){try{await assets.delete(old)}catch(_){}}}catch(err){failMsg(err,'삭제')}return}
   const rm=e.target.closest('[data-rm]');if(rm){if(!rm.dataset.arm){rm.dataset.arm='1';rm.textContent='정말 삭제';rm.classList.add('arm');setTimeout(()=>{if(rm.isConnected){delete rm.dataset.arm;rm.textContent='삭제';rm.classList.remove('arm')}},3000);return}
     try{await db.doc('items/'+rm.dataset.rm).delete();$('#msg').textContent='항목을 삭제했어요.'}catch(err){failMsg(err,'삭제')}return}
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
@@ -505,7 +523,7 @@ function renderVJ(){
     const meta=[['Cast',c.cast],['물자',c.mat],['music',c.music],['Pa',c.pa],['LED',[c.ledL,c.ledC,c.ledR].filter(Boolean).join(' · ')],['중계',c.live],['조명',c.light]].filter(x=>x[1]&&x[1]!=='-');
     return `<div class="vjc${pre?' pre':''}" data-c="${c.id}"><div class="vjh"><span class="vno">${esc(c.no||'')}</span><span class="vtm">${esc(c.s||'')}–${esc(c.e||'')} <small>${rt(c)}</small></span><b class="vit">${esc(c.item||'')}</b><span class="vde">${esc(c.desc||'')}</span>${ed?`<button type="button" class="mv" data-vedit="${c.id}">수정</button>`:''}</div>
       ${meta.length?`<div class="vjm">${meta.map(([k,v])=>`<span><i>${k}</i>${esc(v)}</span>`).join('')}</div>`:''}${c.rem?`<div class="vjr">※ ${esc(c.rem)}</div>`:''}
-      <div class="vjs">${(c.scr||[]).map((s,i)=>`<div class="scr${s.img?' has':''}"><div class="sbox">${s.img?`<button type="button" class="simg" data-vimg="${esc(s.img)}" data-cap="${esc((c.item||'')+' · '+s.l)}" aria-label="${esc(s.l)} 크게 보기"><img src="${esc(BLOB(s.img))}" alt="" loading="lazy"></button>${ed?`<button type="button" class="del" data-vdel="${c.id}:${i}" aria-label="${esc(s.l)} 이미지 삭제">×</button>`:''}`:`<span>${assets&&ED()?`<button type="button" class="up" data-vup="${c.id}:${i}">이미지 올리기</button>`:'이미지 없음'}</span>`}</div>
+      <div class="vjs">${(c.scr||[]).map((s,i)=>`<div class="scr${s.img?' has':''}"><div class="sbox"${assets&&ED()?` data-dz="v:${c.id}:${i}"`:''}>${s.img?`<button type="button" class="simg" data-vimg="${esc(s.img)}" data-cap="${esc((c.item||'')+' · '+s.l)}" aria-label="${esc(s.l)} 크게 보기"><img src="${esc(BLOB(s.img))}" alt="" loading="lazy"></button>${ed?`<button type="button" class="del" data-vdel="${c.id}:${i}" aria-label="${esc(s.l)} 이미지 삭제">×</button>`:''}`:`<span>${assets&&ED()?`<button type="button" class="up" data-vup="${c.id}:${i}">이미지 올리기</button>`:'이미지 없음'}</span>`}</div>
         <div class="slab"><input data-vl="${c.id}:${i}" value="${esc(s.l)}" aria-label="화면 이름"${ed?'':' disabled'}>${ed?`<button type="button" class="rm" data-vrm="${c.id}:${i}" aria-label="화면 빼기">빼기</button>`:''}</div>
         <div class="slnk">${s.link&&/^https?:\/\//.test(s.link)?`<a href="${esc(s.link)}" target="_blank" rel="noopener">원본 링크 ↗</a>`:''}${ed?`<input data-vlk="${c.id}:${i}" value="${esc(s.link||'')}" placeholder="원본 링크 https://" aria-label="원본 링크">`:''}</div></div>`).join('')}
         ${ed?`<button type="button" class="sadd" data-vadd="${c.id}">+ 화면 추가</button>`:''}</div></div>`}).join('')}
@@ -515,8 +533,9 @@ const vjDoc=id=>db.doc('vj/'+id);
 const scrOf=id=>(vj.find(x=>x.id===id).scr||[]).map(s=>({l:s.l||'',img:s.img||'',link:s.link||''}));
 async function vjSaveScr(id,scr,msg){try{await vjDoc(id).update({scr});if(msg)$('#msg').textContent=msg}catch(e){$('#msg').textContent='저장하지 못했어요.'}}
 const vjFile=Object.assign(document.createElement('input'),{type:'file',accept:'image/*'});
-vjFile.addEventListener('change',async()=>{const f=vjFile.files[0];if(!f||!vjUp)return;const [id,i]=vjUp.split(':');$('#msg').textContent='올리는 중이에요…';
-  try{const res=await assets.upload(f);const scr=scrOf(id);scr[+i].img=res.id;await vjSaveScr(id,scr,'화면 이미지를 넣었어요.')}catch(e){$('#msg').textContent='올리지 못했어요 ('+(e&&e.code||'오류')+').'}vjFile.value=''});
+vjFile.addEventListener('change',async()=>{await vjUpload(vjUp,vjFile.files[0]);vjFile.value=''});
+async function vjUpload(key,f){if(!f||!key)return;if(!/^image\//.test(f.type)){$('#msg').textContent='이미지 파일만 넣을 수 있어요.';return}const [id,i]=key.split(':');$('#msg').textContent='올리는 중이에요…';
+  try{const res=await assets.upload(f);const scr=scrOf(id);scr[+i].img=res.id;await vjSaveScr(id,scr,'화면 이미지를 넣었어요.')}catch(e){$('#msg').textContent='올리지 못했어요 ('+(e&&e.code||'오류')+').'}}
 $('#list').addEventListener('click',async e=>{if(kind!=='vj')return;const q=s=>e.target.closest(s);let b;
   if(b=q('[data-vup]')){vjUp=b.dataset.vup;vjFile.click();return}
   if(b=q('[data-vimg]')){$('#lbimg').src=BLOB(b.dataset.vimg);$('#lbcap').textContent=b.dataset.cap;$('#lb').hidden=false;$('#lbx').focus();return}
@@ -626,12 +645,14 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-rc
   if(!d.dataset.arm){d.dataset.arm='1';d.textContent='삭제';d.classList.add('arm');setTimeout(()=>{if(d.isConnected){delete d.dataset.arm;d.textContent='×';d.classList.remove('arm')}},3000);return}
   const [id,i]=d.dataset.rcdel.split(':'),r=id==='RENT'?{rcpts:rentRc}:rows.find(x=>x.id===id);if(!r)return;const L=(r.rcpts||[]).slice(),gone=L.splice(+i,1)[0];
   try{if(id==='RENT')await db.doc('meta/rent').set({rcpts:L});else await db.doc('items/'+id).update({rcpts:L});$('#msg').textContent='영수증을 지웠어요.';if(assets&&gone){try{await assets.delete(gone.id)}catch(_){}}}catch(err){failMsg(err,'삭제')}});
-const rczOf=e=>e.target.closest&&(e.target.closest('[data-rcz]')||e.target.closest('.row')?.querySelector('[data-rcz]'));
+const rczOf=e=>{if(!e.target.closest)return null;const row=e.target.closest('.row');return e.target.closest('[data-dz]')||e.target.closest('[data-rcz]')||row?.querySelector('[data-rcz]')||row?.querySelector('[data-dz]')};
 $('#list').addEventListener('dragover',e=>{const z=rczOf(e);if(!z||!e.dataTransfer||![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();e.dataTransfer.dropEffect='copy';
-  document.querySelectorAll('.rcz.over').forEach(x=>x!==z&&x.classList.remove('over'));z.classList.add('over')});
+  document.querySelectorAll('.over').forEach(x=>x!==z&&x.classList.remove('over'));z.classList.add('over')});
 $('#list').addEventListener('dragleave',e=>{const z=rczOf(e);const box=z&&(z.closest('.row')||z);if(z&&!box.contains(e.relatedTarget))z.classList.remove('over')});
-$('#list').addEventListener('drop',e=>{const z=rczOf(e);if(!z)return;e.preventDefault();z.classList.remove('over');if(e.dataTransfer&&e.dataTransfer.files.length)rcUpload(z.dataset.rcz,e.dataTransfer.files)});
-addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});addEventListener('drop',e=>{if(!e.target.closest||!(e.target.closest('.row')||e.target.closest('[data-rcz]')))e.preventDefault()});
+$('#list').addEventListener('drop',e=>{const z=rczOf(e);if(!z)return;e.preventDefault();z.classList.remove('over');const fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;
+  if(z.dataset.rcz){rcUpload(z.dataset.rcz,fs);return}const [t,...k]=z.dataset.dz.split(':');
+  if(t==='p')pimUpload(k[0],fs[0]);else if(t==='d')proofUpload(k[0],[...fs].filter(f=>/^image\//.test(f.type)||isPdf(f)));else if(t==='v')vjUpload(k.join(':'),fs[0])});
+addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});addEventListener('drop',e=>{if(!e.target.closest||!(e.target.closest('.row')||e.target.closest('[data-rcz]')||e.target.closest('[data-dz]')))e.preventDefault()});
 render();
 (async()=>{
   claude.use('downloads').then(x=>{dl=x});claude.use('mcp').then(x=>{mcp=x;if(mcp)render()});
