@@ -114,6 +114,8 @@ select:disabled{opacity:.85}
 .dlgc{background:var(--paper);color:var(--ink);border-radius:14px;padding:20px 22px;max-width:440px;width:100%;display:grid;gap:12px;font-size:15px;line-height:1.55}
 .dlgc h3{margin:0;font-size:17px}.dlgc p{margin:0}.dlgc small{color:var(--muted);font-size:13px}
 .dlgc .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:11px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;margin-right:6px}
+.bmpic{border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12.5px}.bmpic>div{padding:6px 10px;display:flex;gap:8px;align-items:center}.bmpic span{flex:1;background:var(--bg);border-radius:999px;padding:2px 10px;color:var(--muted)}.bmpic i{font-style:normal;color:var(--muted);margin-left:auto}
+.bmpic .r2{border:2px solid var(--accent);background:var(--accent-soft)}.bmpic .r2 b{background:var(--accent);color:#fff;border-radius:999px;padding:1px 9px}.bmpic .r2 i{color:var(--accent);font-weight:700}
 .dlgc .acts{display:flex;gap:8px;justify-content:flex-end}.dlgc .acts button{font:inherit;font-size:14px;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
 .dlgc .acts .pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .hp{display:flow-root}.pim{float:left;position:relative;width:72px;height:72px;margin:0 12px 6px 0;border-radius:8px}
@@ -251,13 +253,15 @@ let fill=null;try{if(location.hash.startsWith('#fill=')){fill=JSON.parse(decodeU
 // 처음 쓰는 사람용 안내 창: ⭐ 버튼을 즐겨찾기 줄에 놓고 → 상품 페이지에서 누르기
 function grabHelp(r){const d=document.createElement('div');d.className='dlg';
   d.innerHTML=`<div class="dlgc" role="dialog" aria-modal="true" aria-label="사진과 가격 자동으로 넣기"><h3>사진과 가격 자동으로 넣기</h3>
-  <p><span class="n">1</span>처음 한 번만 해 주세요. 아래 빨간 버튼을 마우스로 꾹 잡고, <b>크롬 맨 위 즐겨찾기 줄</b>로 끌어 올려 놓으세요.<br><small>즐겨찾기 줄이 안 보이면 키보드에서 Cmd + Shift + B 를 누르세요.</small></p>
+  <p><span class="n">1</span>처음 한 번만 해 주세요. 아래 빨간 버튼을 마우스로 꾹 잡고, 크롬 <b>주소창 바로 아래 줄</b>에 끌어다 놓으세요.</p>
+  <div class="bmpic"><div class="r1">← → ⟳ <span>coupang.com/…</span> <i>← 주소창</i></div><div class="r2">네이버 · 유튜브 · <b>⭐ 현황판에 담기</b> <i>← 여기에 놓기</i></div></div>
+  <p><small>주소창 아래에 그 줄이 안 보이면 키보드에서 Cmd + Shift + B 를 같이 누르면 나타나요.</small></p>
   <p style="text-align:center"><a class="bmkl" href="${esc(BMK)}">⭐ 현황판에 담기</a></p>
   <p><span class="n">2</span>아래 <b>상품 페이지 열기</b>를 누르세요.</p>
-  <p><span class="n">3</span>열린 상품 페이지에서, 즐겨찾기 줄의 <b>⭐ 현황판에 담기</b>를 누르세요. 사진과 가격이 자동으로 들어와요.</p>
+  <p><span class="n">3</span>열린 상품 페이지에서, 주소창 아래 줄의 <b>⭐ 현황판에 담기</b>를 누르세요. 사진과 가격이 자동으로 들어와요.</p>
   <div class="acts"><button type="button" data-x>닫기</button><button type="button" class="pri" data-go>상품 페이지 열기</button></div></div>`;
   document.body.appendChild(d);const close=()=>d.remove();
-  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))close();else if(e.target.closest('[data-go]')){window.open(linksOf(r)[0],'_blank');close()}else if(e.target.closest('.bmkl')){e.preventDefault();toast('누르지 말고, 크롬 맨 위 즐겨찾기 줄로 끌어다 놓아 주세요.')}});
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))close();else if(e.target.closest('[data-go]')){window.open(linksOf(r)[0],'_blank');close()}else if(e.target.closest('.bmkl')){e.preventDefault();toast('누르지 말고, 크롬 주소창 바로 아래 줄로 끌어다 놓아 주세요.')}});
   d.addEventListener('keydown',e=>{if(e.key==='Escape')close()});d.querySelector('[data-go]').focus()}
 async function tryFill(){if(!fill||!rows.length||canW===null)return;const f=fill;fill=null;
   if(!canW){toast('편집 비밀번호로 들어온 뒤 다시 눌러 주세요.');return}
