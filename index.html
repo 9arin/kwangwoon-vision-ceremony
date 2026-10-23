@@ -109,6 +109,8 @@ select:disabled{opacity:.85}
 .lnk a+a{margin-left:4px}
 .stf{display:flex;gap:6px;flex-wrap:wrap}.stf button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .stf button i{width:9px;height:9px;border-radius:50%;display:inline-block}.stf button b{font-weight:500;color:var(--muted)}.stf button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}.stf button[aria-pressed="true"] b{color:inherit}
+.mapv{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}.mapv button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}.mapv button b{font-weight:500;color:var(--muted);margin-left:4px}.mapv button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}.mapv button[aria-pressed="true"] b{color:inherit}
+.pe small{color:var(--muted);font-size:11.5px;margin-left:2px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -200,7 +202,8 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
   </div>
   <section class="mapc" id="mapc" aria-label="도면 위 디자인 현황">
     <div class="maph"><b id="mapt">도면으로 보기 · 디자인 위치</b><span class="lg" id="lgd"></span></div>
-    <div class="plan"><img src="plaza.jpg" alt="광운스퀘어 원형광장 조감도"><svg id="pins" viewBox="0 0 1672 941" aria-label="디자인 위치 표시"></svg></div>
+    <div class="mapv" id="mapv" role="group" aria-label="도면 고르기"></div>
+    <div class="plan"><img id="mapimg" src="plaza.jpg" alt="광운스퀘어 원형광장 조감도"><svg id="pins" viewBox="0 0 1672 941" aria-label="디자인 위치 표시"></svg></div>
     <div class="maph"><span class="lg" id="maphint"></span></div>
   </section>
   <form class="addf" id="addf" hidden aria-label="항목 추가·수정">
@@ -304,6 +307,12 @@ function summary(){
   $('#sum').innerHTML=card('staff')+card('design')+card('rent')+card('buy')+(vj.length?vjCard():'');
 }
 const ANCH={recep:[1533,491]};
+// 도면: 광장(plaza.jpg) + 지하주차장 지하 2층·3층(대략 그림). 핀의 m 이 없으면 광장
+const MAPS={plaza:{n:'광장',img:'plaza.jpg',alt:'광운스퀘어 원형광장 조감도'},b2:{n:'지하 2층',img:'parking-b2.svg',alt:'지하주차장 지하 2층 대략 그림'},b3:{n:'지하 3층',img:'parking-b3.svg',alt:'지하주차장 지하 3층 대략 그림'}};
+let mapView='plaza';const pm=p=>p.m||'plaza';
+function mapvBar(k){const cnt=m=>rows.filter(r=>r.kind===k&&stOk(r)).reduce((a,r)=>a+(r.pins||[]).filter(p=>pm(p)===m).length,0);
+  const el=$('#mapv');if(!el)return;el.innerHTML=Object.keys(MAPS).map(m=>`<button type="button" data-mv="${m}" aria-pressed="${m===mapView}">${MAPS[m].n}<b>${cnt(m)}</b></button>`).join('');
+  const im=$('#mapimg');if(im&&im.getAttribute('src')!==MAPS[mapView].img){im.src=MAPS[mapView].img;im.alt=MAPS[mapView].alt}}
 const OPSAT=[858,159];
 const D=(x,y)=>[(x*1.12-417)*1.03851,(y*1.12-37)*1.03978];
 const CL={design:['--todo','--done','--prog','--fin'],rent:['--todo','--prog','--done'],buy:['--todo','--prog','--done'],staff:['--todo','--done','--fin']};
@@ -338,17 +347,17 @@ const autoLab=r=>r.kind==='staff'?((r.code||r.name)+(r.who?' '+r.who:'')):r.kind
 function openImg(r){$('#lbimg').src=BLOB(r.imgs[0]);$('#lbcap').textContent=r.name+(r.loc?' · '+r.loc:'');$('#lb').hidden=false;$('#lbx').focus()}
 function renderMap(){
   const svg=$('#pins');svg.innerHTML='';legend(kind);
-  const k=kind==='all'?'design':kind,ed=pend&&pend.edit?pend.id:null;
-  if(k!=='design'){const [X,Y]=ANCH.recep;mk('text',{x:X,y:Y-32,'text-anchor':'middle',style:'font:700 17px var(--sans);fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px'},svg).textContent='리셉션 (건물 내부)'}
+  const k=kind==='all'?'design':kind,ed=pend&&pend.edit?pend.id:null,onPlaza=mapView==='plaza';mapvBar(k);
+  if(k!=='design'&&onPlaza){const [X,Y]=ANCH.recep;mk('text',{x:X,y:Y-32,'text-anchor':'middle',style:'font:700 17px var(--sans);fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px'},svg).textContent='리셉션 (건물 내부)'}
   const ops=[],L=[],add=(X,Y,lab,col,aria,go,dot)=>L.push({X,Y,lab,col,aria,go,dot});
   rows.filter(r=>r.kind===k&&stOk(r)).forEach(r=>{if(r.ops)ops.push(r);if(r.id===ed)return;
     const has=r.kind==='design'&&(r.imgs||[]).length;
-    (r.pins||[]).forEach(p=>{const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
+    (r.pins||[]).filter(p=>pm(p)===mapView).forEach(p=>{const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
       add(p.x,p.y,lab,colOf(r),`${lab} ${r.name}${r.kind==='staff'?' 담당 '+(r.who||'미정'):''} ${r.loc||''} ${ST[r.kind][r.st||0]}`,()=>{if(has)openImg(r);else goRow(r)},has)})});
-  if(ops.length){const done=ops.filter(doneOf).length,col=done===ops.length?'--done':done?'--prog':'--todo';
+  if(ops.length&&onPlaza){const done=ops.filter(doneOf).length,col=done===ops.length?'--done':done?'--prog':'--todo';
     add(OPSAT[0],OPSAT[1],`운영텐트 보관 ${done}/${ops.length}`,col,`운영텐트 보관 물품 ${ops.length}종 중 ${done}종 확보`,()=>goRow(ops.find(r=>!doneOf(r))||ops[0]))}
   if(pend&&pend.pins){const nm=$('#f-name').value.trim()||'새 항목';
-    pend.pins.forEach((p,i)=>add(p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
+    pend.pins.forEach((p,i)=>pm(p)===mapView&&add(p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
   layoutPills(svg,L);
 }
 // 구매 탭: 상태별로 골라 보기 (전체 / 미구매 / 결제 완료 / 입고 완료)
@@ -452,7 +461,7 @@ let pend=null;
 const FF=['cat','name','who','sex','qty','loc','note','code','link','vendor','vlink'];
 const setTab=k=>{kind=k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===k))};
 function pinsEd(){if(pend&&pend.inline){const ip=$('#ie-pins');if(ip)ip.innerHTML=pinsHTML();return}const ps=pend.pins;
-  $('#f-pins').innerHTML=ps.length?'<span>도면 위치</span>'+ps.map((p,i)=>`<span class="pe">${i+1}<input data-pl="${i}" value="${esc(p.l)}" placeholder="표시 (비우면 자동)" aria-label="위치 ${i+1} 표시"><button type="button" data-px="${i}" aria-label="위치 ${i+1} 빼기">×</button></span>`).join(''):'<span>도면 위치 없음 — 필요하면 아래 버튼으로 찍어 주세요.</span>'}
+  $('#f-pins').innerHTML=ps.length?'<span>도면 위치</span>'+ps.map((p,i)=>`<span class="pe">${i+1}${p.m?`<small>${MAPS[p.m].n}</small>`:''}<input data-pl="${i}" value="${esc(p.l)}" placeholder="표시 (비우면 자동)" aria-label="위치 ${i+1} 표시"><button type="button" data-px="${i}" aria-label="위치 ${i+1} 빼기">×</button></span>`).join(''):'<span>도면 위치 없음 — 필요하면 아래 버튼으로 찍어 주세요.</span>'}
 function openForm(r){$('#addf').hidden=false;
   pend={edit:!!r,id:r?r.id:null,pins:r?(r.pins||[]).map(p=>({x:p.x,y:p.y,l:p.l||''})):[]};
   const k=r?r.kind:(kind==='all'?'design':kind);$('#f-kind').value=k;cats();
@@ -465,8 +474,9 @@ function startPick(k){if(k!==kind&&!(k==='design'&&kind==='all')){setTab(k);rend
   $('.plan').classList.add('picking');$('#mapc').scrollIntoView({block:'center',behavior:'smooth'});$('#msg').textContent='도면에서 놓을 자리를 누르세요.'}
 $('#pins').addEventListener('click',e=>{if(!pend||!$('.plan').classList.contains('picking'))return;e.stopPropagation();
   const svg=$('#pins'),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
-  $('.plan').classList.remove('picking');pend.pins.push({x:Math.round(p.x),y:Math.round(p.y),l:''});pinsEd();renderMap();
+  $('.plan').classList.remove('picking');pend.pins.push(Object.assign({x:Math.round(p.x),y:Math.round(p.y),l:''},mapView==='plaza'?{}:{m:mapView}));pinsEd();renderMap();
   $('#msg').textContent=`위치를 찍었어요. ${pend.edit?'저장':'추가'}을 누르면 반영돼요.`;if(pend.inline){const el=document.querySelector(`[data-ie="${pend.id}"]`);const ip=$('#ie-pins');if(ip)ip.innerHTML=pinsHTML();if(el)el.scrollIntoView({block:'center',behavior:'smooth'})}else $('#addf').scrollIntoView({block:'center',behavior:'smooth'})},true);
+$('#mapv').addEventListener('click',e=>{const b=e.target.closest('[data-mv]');if(!b)return;mapView=b.dataset.mv;renderMap()});
 $('#f-pins').addEventListener('input',e=>{const i=e.target.dataset.pl;if(i!=null&&pend){pend.pins[+i].l=e.target.value;renderMap()}});
 $('#f-pins').addEventListener('click',e=>{const b=e.target.closest('[data-px]');if(b&&pend){pend.pins.splice(+b.dataset.px,1);pinsEd();renderMap()}});
 ['f-name','f-code'].forEach(id=>$('#'+id).addEventListener('input',()=>{if(pend&&pend.pins.length)renderMap()}));
@@ -501,20 +511,22 @@ async function buildPrint(mode){
   const pic=(id,cls)=>!id?`<div class="${cls} no">시안 없음</div>`:IM[id]==='pdf'?`<div class="${cls} no">PDF 시안</div>`:IM[id]?`<img class="${cls}" data-im="${id}" alt="">`:`<div class="${cls} no">불러오지 못함</div>`;
   const gallery=()=>{const ds=rows.filter(r=>r.kind==='design');return `<section class="gal"><h2>디자인물 한눈에 보기 <small>현장에서 이 그림을 보고 설치 위치를 맞춰 주세요 · ${ds.filter(r=>(r.imgs||[]).length).length}/${ds.length}종 시안 있음</small></h2><div class="cards">${ds.map(r=>{const im=r.imgs||[];
     return `<div class="card">${pic(im[0],'big')}${im.length>1?`<div class="more">${im.slice(1).map(i=>pic(i,'sm')).join('')}</div>`:''}<div class="cap"><span class="c">${esc(r.code||'')}</span> <b>${esc(r.name)}</b> <span class="q">${esc(r.qty||'')}</span></div><div class="lc">${esc(r.loc||'')}</div><div class="ck">☐ 설치 확인</div></div>`}).join('')}</div></section>`};
-  const secs=KS.map(k=>{kind=k;renderMap();const svg=$('#pins').innerHTML;
+  const keepMV=mapView,PK={};for(const m of ['b2','b3']){const b=await (await fetch(MAPS[m].img)).blob();PK[m]=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)})}
+  const secs=KS.map(k=>{kind=k;mapView='plaza';renderMap();const svg=$('#pins').innerHTML;
+    const pk=rows.some(r=>r.kind===k&&(r.pins||[]).some(p=>pm(p)!=='plaza'))?['b2','b3'].map(m=>{mapView=m;renderMap();return `<div><div class="plan"><img src="${PK[m]}" alt=""><svg viewBox="0 0 1672 941">${$('#pins').innerHTML}</svg></div></div>`}).join(''):'';mapView='plaza';
     const lg=ST[k].map((x,i)=>`<span><i style="background:var(${CL[k][i]})"></i>${x}</span>`).join('');
     const rs=rows.filter(r=>r.kind===k);
     const head=k==='staff'?'<th>표시</th><th>맡은 일</th><th>담당</th><th>위치</th><th>할 일</th><th>상태</th><th>확인</th>':`<th>표시</th>${k==='design'?'<th>시안</th>':''}<th>구분</th><th>항목</th><th>수량</th><th>위치·메모</th>${k==='design'?'<th>인쇄 업체</th>':''}<th>상태</th><th>확인</th>`;
     const body=rs.map(r=>{const pl=(r.pins||[]).map(p=>p.l||autoLab(r)).join(', ')||(r.ops?'운영텐트 보관':'—');
       return k==='staff'?`<tr><td class="c">${esc(r.code||'')}</td><td><b>${esc(r.name)}</b></td><td>${r.who?`<b>${esc(r.who)}</b>${r.sex?` (${esc(r.sex)})`:''}`:'<span class="m">미정</span>'}</td><td>${esc(r.loc||'')}</td><td class="s">${esc(r.note||'')}</td><td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`
       :`<tr><td class="c">${esc(k==='design'?(r.code||pl):pl)}</td>${k==='design'?`<td class="th">${pic((r.imgs||[])[0],'tn')}</td>`:''}<td class="s">${esc(r.cat||'')}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.qty||'')}</td><td class="s">${esc([r.loc,r.note].filter(Boolean).join(' · '))}</td>${k==='design'?`<td class="s">${esc(r.vendor||'—')}</td>`:''}<td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`}).join('');
-    return `<section><h1>${T[k]} <small>비전선포식 · 10/29(목) 광운스퀘어 · ${stamp} 기준</small></h1><div class="plan"><img class="pz" alt=""><svg viewBox="0 0 1672 941">${svg}</svg></div><div class="lg">${lg}</div></section>${k==='design'?gallery():''}<section class="tb"><h2>${T[k]} 목록 <small>${rs.length}건</small></h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`}).join('');
-  kind=keep;render();
+    return `<section><h1>${T[k]} <small>비전선포식 · 10/29(목) 광운스퀘어 · ${stamp} 기준</small></h1><div class="plan"><img class="pz" alt=""><svg viewBox="0 0 1672 941">${svg}</svg></div><div class="lg">${lg}</div></section>${pk?`<section><h1>${T[k]} · 지하주차장 <small>왼쪽 지하 2층 · 오른쪽 지하 3층 (대략 그림)</small></h1><div class="pk">${pk}</div><div class="lg">${lg}</div></section>`:''}${k==='design'?gallery():''}<section class="tb"><h2>${T[k]} 목록 <small>${rs.length}건</small></h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`}).join('');
+  kind=keep;mapView=keepMV;render();
   if(mode==='parts')return{secs,src,IM,stamp};
   const css=`:root{--todo:#9a8f90;--done:#1f7a52;--prog:#b7791f;--fin:#2b5fa8}*{box-sizing:border-box}body{margin:0;font-family:"Apple SD Gothic Neo","Malgun Gothic","IBM Plex Sans KR",sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @page{size:A4 landscape;margin:8mm}section{break-after:page;padding:0}section:last-child{break-after:auto}
 h1{font-size:28px;margin:0 0 8px}h2{font-size:24px;margin:0 0 8px}small{font-size:15px;font-weight:400;color:#555;margin-left:8px}
-.plan{position:relative;width:100%;max-height:170mm;aspect-ratio:1672/941;margin:0 auto}.plan img{display:block;width:100%;height:100%}.plan svg{position:absolute;inset:0;width:100%;height:100%}
+.plan{position:relative;width:100%;max-height:170mm;aspect-ratio:1672/941;margin:0 auto}.pk{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-items:start}.plan img{display:block;width:100%;height:100%}.plan svg{position:absolute;inset:0;width:100%;height:100%}
 .pin{transform-box:fill-box;transform-origin:center;transform:scale(1.2)}svg>text{font-size:24px!important}.pin text{font:700 17px ui-monospace,Menlo,monospace;fill:#fff}.lg{display:flex;gap:18px;font-size:16px;margin-top:6px}.lg i{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.35}th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eee;white-space:nowrap}tr{break-inside:avoid}thead{display:table-header-group}
 .c{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
@@ -531,7 +543,7 @@ const PCOL={'--todo':'#9a8f90','--done':'#1f7a52','--prog':'#b7791f','--fin':'#2
 const PDFCSS=`#pdfroot{position:fixed;left:-20000px;top:0;width:1123px;z-index:-1}
 #pdfroot .pg{width:1123px;height:794px;padding:26px 30px;overflow:hidden;background:#fff;color:#111;font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;box-sizing:border-box;margin-bottom:10px}
 #pdfroot *{box-sizing:border-box}#pdfroot h1{font-size:28px;margin:0 0 8px}#pdfroot h2{font-size:24px;margin:0 0 8px}#pdfroot small{font-size:15px;font-weight:400;color:#555;margin-left:8px}
-#pdfroot .plan{position:relative;width:100%;aspect-ratio:1672/941}#pdfroot .plan img{display:block;width:100%;height:100%}#pdfroot .plan svg{position:absolute;left:0;top:0;width:100%;height:100%}
+#pdfroot .plan{position:relative;width:100%;aspect-ratio:1672/941}#pdfroot .pk{display:grid;grid-template-columns:1fr 1fr;gap:12px}#pdfroot .plan img{display:block;width:100%;height:100%}#pdfroot .plan svg{position:absolute;left:0;top:0;width:100%;height:100%}
 #pdfroot .lg{display:flex;gap:18px;font-size:16px;margin-top:6px}#pdfroot .lg i{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 #pdfroot table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.35}#pdfroot th,#pdfroot td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}#pdfroot th{background:#eee;white-space:nowrap}
 #pdfroot .c{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}#pdfroot .s{color:#222;font-size:14.5px}#pdfroot .m{color:#666}#pdfroot .box{text-align:center;font-size:22px;width:44px}
@@ -668,7 +680,7 @@ function openPrice(id,got){lastSN={id,note:got.shipNote||''};let pr=document.que
 let ie=null;
 const SEX=['','남','여'];
 const sexSel=(v,attr)=>`<select ${attr} class="sx">${SEX.map(x=>`<option value="${x}"${(v||'')===x?' selected':''}>${x||'성별'}</option>`).join('')}</select>`;
-function pinsHTML(){const ps=pend?pend.pins:[];return ps.length?'<span>도면 위치</span>'+ps.map((p,i)=>`<span class="pe">${i+1}<input data-pl="${i}" value="${esc(p.l)}" placeholder="표시 (비우면 자동)" aria-label="위치 ${i+1} 표시"><button type="button" data-px="${i}" aria-label="위치 ${i+1} 빼기">×</button></span>`).join(''):'<span>도면 위치 없음</span>'}
+function pinsHTML(){const ps=pend?pend.pins:[];return ps.length?'<span>도면 위치</span>'+ps.map((p,i)=>`<span class="pe">${i+1}${p.m?`<small>${MAPS[p.m].n}</small>`:''}<input data-pl="${i}" value="${esc(p.l)}" placeholder="표시 (비우면 자동)" aria-label="위치 ${i+1} 표시"><button type="button" data-px="${i}" aria-label="위치 ${i+1} 빼기">×</button></span>`).join(''):'<span>도면 위치 없음</span>'}
 function ieHTML(r){const d=ie.d,k=d.kind,st=k==='staff',dz=k==='design',f=(key,lab,ph,w)=>`<label style="flex:${w||1} 1 ${(w||1)*130}px">${lab}<input data-if="${key}" value="${esc(d[key]||'')}" placeholder="${ph||''}"></label>`;
   return `<div class="row ied" data-ie="${r.id}"><div class="iedf">
     <label style="flex:1 1 110px">종류<select data-if="kind">${['design','rent','buy','staff'].map(x=>`<option value="${x}"${x===k?' selected':''}>${KN[x]}</option>`).join('')}</select></label>
