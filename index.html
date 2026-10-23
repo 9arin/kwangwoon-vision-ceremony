@@ -133,6 +133,12 @@ select:disabled{opacity:.85}
 .tdh{display:block;width:100%;box-sizing:border-box;margin-top:4px;font-family:"Nanum Pen Script","Apple SD Gothic Neo",var(--sans);font-style:italic;font-size:13.5px;line-height:1.5;color:var(--done);background:color-mix(in srgb,var(--done) 9%,transparent);border:0;border-left:3px solid var(--done);border-radius:0 6px 6px 0;padding:5px 10px;resize:vertical;min-height:30px}
 .tdh::placeholder{color:var(--muted);font-style:italic}div.tdh::before{content:"↳ "}
 .tdm{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}.tdm>span{white-space:nowrap}.tdw{width:110px;font:inherit;font-size:12.5px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink)}span.tdw{width:auto;background:var(--accent-soft);border-color:transparent}
+.sec{margin-top:6px;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sec .mv{color:var(--accent)}
+.sec.open{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}.sech{font-size:12px;color:var(--muted);grid-column:1/-1}
+.secz{border:1px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:52px}.secz .wl{font-size:12px;color:var(--muted);width:100%}
+.sth{width:56px;height:56px}.sth img{width:100%;height:100%;object-fit:cover;border-radius:7px;display:block;-webkit-user-drag:none;user-select:none}
+.dlgc input[type=password]{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}.secerr{color:#e03131;font-size:13px;min-height:1.2em;margin:0}
+#lb.sec img{-webkit-user-drag:none;user-select:none;pointer-events:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -146,7 +152,7 @@ select:disabled{opacity:.85}
 .dlgc .acts .pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .hp{display:flow-root}.pim{float:left;position:relative;width:72px;height:72px;margin:0 12px 6px 0;border-radius:8px}
 .pim .pup{width:72px;height:72px;padding:0;line-height:1.35;font-size:12px}.pim.none{border:1px dashed var(--line);background:var(--bg)}
-.pim.over,.proofs.over,.sbox.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft);border-radius:8px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.secz.over,.pim.over,.proofs.over,.sbox.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft);border-radius:8px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
 .row.hs{grid-template-columns:minmax(0,1fr) 64px 220px}.row.hs>div:first-child{grid-row:span 2}
 .side{grid-column:2/-1;display:grid;gap:6px;align-content:start}
 .pay{display:flex;flex-wrap:wrap;gap:6px}
@@ -219,7 +225,6 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
       <button type="button" data-k="buy" aria-pressed="false">구매</button>
       <button type="button" data-k="vj" aria-pressed="false">VJ</button>
       <button type="button" data-k="todo" aria-pressed="false">할 일</button>
-      <button type="button" data-k="all" aria-pressed="false">전체</button>
     </div>
     <div class="acts" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="open-only"> 아직 안 끝난 것만</label><button type="button" class="prbtn" id="printbtn">🖨 인쇄용 PDF</button><button type="button" class="addbtn" id="addbtn" hidden>+ 항목 추가</button></div>
   </div>
@@ -402,16 +407,57 @@ function groupPop(name,G,k){const seen=new Map();G.forEach(g=>{const o=seen.get(
   d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))return close();const b=e.target.closest('[data-go]');if(b){close();const r=rows.find(x=>x.id===b.dataset.go);if(r)goRow(r)}});
   d.addEventListener('keydown',e=>{if(e.key==='Escape')close()});d.querySelector('[data-x]').focus()}
 // ── 할 일: meta 테이블의 't-…' 문서 {kind:'todo',text,who,done,how,doneAt,o}. 완료 메모(how)는 할 일 바로 아래 다른 글씨로
-let todos=[];const myName=()=>{try{return localStorage.getItem('tdName')||''}catch(e){return ''}};
+let todos=[];
 const nowStamp=()=>{const d=new Date();return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
 const todoCard=()=>{const n=todos.length,d=todos.filter(t=>t.done).length;return `<div class="card"><div class="lab">할 일 완료</div><b>${d}<small> / ${n}</small></b><div class="bar"><i class="d" style="width:${n?d/n*100:0}%"></i></div></div>`};
 function renderTodo(){const ed=ED(),n=todos.length,dn=todos.filter(t=>t.done).length;
   let ts=[...todos].sort((a,b)=>(a.done?1:0)-(b.done?1:0)||(+a.o||0)-(+b.o||0));if(openOnly)ts=ts.filter(t=>!t.done);
-  $('#list').innerHTML=`<section class="grp"><h2>할 일 <span>${dn}/${n} 완료</span></h2>${ed?`<form class="tdadd" id="tdadd"><input id="td-text" placeholder="해야 할 일을 적어 주세요" aria-label="해야 할 일" required><input id="td-who" placeholder="담당 (선택)" aria-label="담당"><input id="td-by" placeholder="작성자 (내 이름)" aria-label="작성자 이름" required value="${esc(myName())}"><button type="submit">추가</button></form>`:''}
+  $('#list').innerHTML=`<section class="grp"><h2>할 일 <span>${dn}/${n} 완료</span></h2>${ed?`<form class="tdadd" id="tdadd"><input id="td-text" placeholder="해야 할 일을 적어 주세요" aria-label="해야 할 일" required><input id="td-who" placeholder="담당 (선택)" aria-label="담당"><button type="submit">추가</button></form>`:''}
   ${ts.length?ts.map(t=>`<div class="td${t.done?' done':''}"><label class="tdck"><input type="checkbox" data-tdck="${t.id}"${t.done?' checked':''}${ed?'':' disabled'} aria-label="${esc(t.text)} 완료"></label>
     <div>${ed?`<input class="tdt" data-tdt="${t.id}" value="${esc(t.text)}" aria-label="할 일">`:`<div class="tdt">${esc(t.text)}</div>`}
     ${ed?`<textarea class="tdh" data-tdh="${t.id}" rows="1" placeholder="${t.done?'어떻게 완료했는지 적어 주세요':'완료하면 어떻게 했는지 여기에 적어요'}" aria-label="${esc(t.text)} 완료 메모">${esc(t.how||'')}</textarea>`:(t.how?`<div class="tdh">${esc(t.how)}</div>`:'')}</div>
-    <div class="tdm">${ed?`<input class="tdw" data-tdw="${t.id}" value="${esc(t.who||'')}" placeholder="담당" aria-label="담당">`:t.who?`<span class="tdw">${esc(t.who)}</span>`:''}${t.by?`<span>${esc(t.by)} 작성${t.at?' · '+esc(t.at):''}</span>`:''}${t.done&&t.doneAt?`<span>${t.doneBy?esc(t.doneBy)+' ':''}${esc(t.doneAt)} 완료</span>`:''}${ed?`<button type="button" class="rm" data-tddel="${t.id}">삭제</button>`:''}</div></div>`).join(''):`<div class="empty">${n?'남은 할 일이 없어요.':'아직 할 일이 없어요.'}</div>`}</section>`}
+    <div class="tdm">${ed?`<input class="tdw" data-tdw="${t.id}" value="${esc(t.who||'')}" placeholder="담당" aria-label="담당">`:t.who?`<span class="tdw">${esc(t.who)}</span>`:''}${t.done&&t.doneAt?`<span>${esc(t.doneAt)} 완료</span>`:''}${ed?`<button type="button" class="rm" data-tddel="${t.id}">삭제</button>`:''}</div></div>`).join(''):`<div class="empty">${n?'남은 할 일이 없어요.':'아직 할 일이 없어요.'}</div>`}</section>`}
+// ── 잠금 서류 (인력 신분증·통장사본)
+// 파일은 잠금 비밀번호로 브라우저에서 AES-GCM 암호화한 뒤 비공개 저장소 'secure'(편집자만 접근)에 올림.
+// 비밀번호는 어디에도 저장하지 않음. 'check.json'(salt + 확인용 암호문)으로 맞는지만 확인. 푼 열쇠는 이 탭 메모리에만, 15분 뒤 자동 잠김.
+const SEC={key:null,url:new Map(),t:0},SECK={id:'신분증',bank:'통장사본'};
+const b64=u=>{let s='';new Uint8Array(u).forEach(c=>s+=String.fromCharCode(c));return btoa(s)},ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const secB=()=>sb.storage.from('secure');
+async function secKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function secCheck(){const {data,error}=await secB().download('check.json');if(error){if(/not.?found|404|400/i.test(String(error.message||error.status||error.statusCode)))return null;throw error}return JSON.parse(await data.text())}
+function secLock(){SEC.key=null;SEC.url.forEach(u=>{if(u.startsWith('blob:'))URL.revokeObjectURL(u)});SEC.url.clear();clearTimeout(SEC.t);render()}
+function secArm(){clearTimeout(SEC.t);SEC.t=setTimeout(()=>{secLock();toast('15분이 지나 서류를 다시 잠갔어요.')},15*60e3)}
+function secUnlock(){return new Promise(async done=>{let c;try{c=await secCheck()}catch(e){toast('잠금 저장소를 열 수 없어요. 편집 비밀번호로 들어왔는지 확인해 주세요.');return done(false)}
+  const first=!c,d=document.createElement('div');d.className='dlg';
+  d.innerHTML=`<form class="dlgc" role="dialog" aria-modal="true" aria-label="서류 잠금"><h3>🔒 ${first?'서류 잠금 비밀번호 정하기':'서류 잠금 풀기'}</h3>
+  <p>${first?'신분증·통장사본을 잠글 비밀번호를 정해 주세요. 이 비밀번호를 아는 사람만 서류를 볼 수 있어요. <b>잊어버리면 되찾을 수 없어요.</b>':'잠금 비밀번호를 넣어 주세요. 풀린 상태는 이 창에서만 15분 동안 유지돼요.'}</p>
+  <input type="password" id="secpw" autocomplete="off" aria-label="잠금 비밀번호" placeholder="잠금 비밀번호" required>${first?'<input type="password" id="secpw2" autocomplete="off" aria-label="잠금 비밀번호 한 번 더" placeholder="한 번 더" required>':''}
+  <p class="secerr" role="alert"></p><div class="acts"><button type="button" data-x>닫기</button><button type="submit" class="pri">${first?'정하기':'풀기'}</button></div></form>`;
+  document.body.appendChild(d);const f=d.querySelector('form'),er=d.querySelector('.secerr'),close=ok=>{d.remove();done(ok)};d.querySelector('#secpw').focus();
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))close(false)});d.addEventListener('keydown',e=>{if(e.key==='Escape')close(false)});
+  f.addEventListener('submit',async e=>{e.preventDefault();const pw=d.querySelector('#secpw').value;er.textContent='확인 중이에요…';
+    try{if(first){if(pw.length<4){er.textContent='4자리 이상으로 정해 주세요.';return}if(pw!==d.querySelector('#secpw2').value){er.textContent='두 번 넣은 비밀번호가 달라요.';return}
+        const salt=crypto.getRandomValues(new Uint8Array(16)),key=await secKey(pw,salt),iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode('ok'));
+        const {error}=await secB().upload('check.json',new Blob([JSON.stringify({salt:b64(salt),iv:b64(iv),ct:b64(ct)})],{type:'application/json'}),{upsert:false});if(error)throw error;SEC.key=key}
+      else{const key=await secKey(pw,ub64(c.salt));try{await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(c.iv)},key,ub64(c.ct))}catch(_){er.textContent='비밀번호가 맞지 않아요.';return}SEC.key=key}
+      secArm();close(true);render();toast('서류 잠금을 풀었어요.')}catch(err){er.textContent='처리하지 못했어요 ('+(err&&err.message||'오류')+').'}})})}
+async function secOpen(d){if(SEC.url.has(d.f))return SEC.url.get(d.f);const {data,error}=await secB().download(d.f);if(error)throw error;
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(d.iv)},SEC.key,await data.arrayBuffer());let url;
+  if(/pdf/i.test(d.t)){await loadJS(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min.js','pdf.worker.min.js');const doc=await pdfjsLib.getDocument({data:new Uint8Array(pt),cMapUrl:PDFJS.replace('pdf.min.js','cmaps/'),cMapPacked:true}).promise;
+    const pg=await doc.getPage(1),vp=pg.getViewport({scale:1.6}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;url=cv.toDataURL('image/jpeg',.85)}
+  else url=URL.createObjectURL(new Blob([pt],{type:d.t||'image/jpeg'}));SEC.url.set(d.f,url);return url}
+function secFill(){if(!SEC.key)return;document.querySelectorAll('img[data-secimg]').forEach(async im=>{const r=rows.find(x=>x.id===im.dataset.secr),d=r&&(r.sdocs||[]).find(x=>x.f===im.dataset.secimg);if(!d)return;try{im.src=await secOpen(d)}catch(e){im.alt='열 수 없음'}})}
+function secHTML(r){const L=r.sdocs||[],cnt=k=>L.filter(d=>d.k===k).length;
+  if(!ED())return L.length?`<div class="sec">🔒 서류 ${L.length}개 (잠김)</div>`:'';
+  if(!SEC.key)return `<div class="sec">🔒 신분증 ${cnt('id')} · 통장사본 ${cnt('bank')} <button type="button" class="mv" data-secun>잠금 풀고 보기·올리기</button></div>`;
+  return `<div class="sec open"><span class="sech">🔓 잠금 풀림 · 다른 사람은 볼 수 없어요 <button type="button" class="mv" data-seclock>잠그기</button></span>${Object.keys(SECK).map(k=>`<div class="secz" data-dz="s:${r.id}:${k}"><span class="wl">${SECK[k]} · 끌어다 놓거나 올리기</span>${L.map((d,i)=>d.k===k?`<span class="tw"><button type="button" class="th sth" data-secv="${r.id}:${i}" aria-label="${esc(r.name)} ${SECK[k]} 보기"><img data-secimg="${esc(d.f)}" data-secr="${r.id}" alt="" draggable="false"></button><button type="button" class="del" data-secdel="${r.id}:${i}" aria-label="${SECK[k]} 삭제">×</button></span>`:'').join('')}<button type="button" class="up" data-secup="${r.id}:${k}">+ 올리기</button></div>`).join('')}</div>`}
+async function secUpload(id,k,files){if(!SEC.key&&!(await secUnlock()))return;const r=rows.find(x=>x.id===id);files=[...files].filter(f=>/^image\//.test(f.type)||isPdf(f));if(!r||!files.length){$('#msg').textContent='사진이나 PDF만 올릴 수 있어요.';return}
+  const L=(r.sdocs||[]).map(x=>({...x}));let n=0;
+  try{for(const f of files){$('#msg').textContent=`잠가서 올리는 중이에요… ${++n}/${files.length}`;const iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},SEC.key,await f.arrayBuffer());
+      const name=Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.bin',{error}=await secB().upload(name,new Blob([ct],{type:'application/octet-stream'}));if(error)throw error;L.push({f:name,iv:b64(iv),k,t:f.type||(isPdf(f)?'application/pdf':'')})}
+    await db.doc('items/'+id).update({sdocs:L});secArm();$('#msg').textContent=`${r.name}에 ${SECK[k]} ${files.length}개를 잠가서 넣었어요.`}catch(err){failMsg(err,'서류 올리기를')}}
+const secIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*,application/pdf,.pdf',multiple:true});let secFor=null;
+secIn.addEventListener('change',()=>{if(secFor&&secIn.files.length){const [id,k]=secFor.split(':');secUpload(id,k,secIn.files)}secIn.value=''});
 // 구매 탭: 상태별로 골라 보기 (전체 / 미구매 / 결제 완료 / 입고 완료)
 const stOk=r=>r.kind!=='buy'||stF===null||(r.st||0)===stF;
 function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<button type="button" data-stf="${v}" aria-pressed="${String(v)===String(stF??'')}">${col?`<i style="background:var(${col})"></i>`:''}${lab} <b>${n}</b></button>`;
@@ -434,20 +480,20 @@ function render(){
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
     if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r),pim=pimHTML(r);
     const vv=r.kind==='rent'&&vOf(r.rv);
-    return `<div class="row${r.kind!=='staff'?' hs':''}${vv?' vrow':''}"${vv?` style="--vc:${vv.color}"`:''}><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
-  restoreFocus(fm);
+    return `<div class="row${r.kind!=='staff'?' hs':''}${vv?' vrow':''}"${vv?` style="--vc:${vv.color}"`:''}><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='staff'?secHTML(r):''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+  restoreFocus(fm);secFill();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
-try{const t=localStorage.getItem('tab');if(t){kind=t;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===t))}}catch(e){}
+try{let t=localStorage.getItem('tab');if(t==='all')t='design';if(t){kind=t;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===t))}}catch(e){}
 $('#open-only').addEventListener('change',e=>{openOnly=e.target.checked;render()});
 $('#list').addEventListener('change',async e=>{const s=e.target.closest('select[data-id]');if(!s||!db)return;const v=+s.value;s.dataset.s=v;
   const me=rows.find(x=>x.id===s.dataset.id),grp=me&&me.grp?rows.filter(x=>x.grp===me.grp):[me];
   try{for(const x of grp)await db.doc('items/'+x.id).update({st:v});$('#msg').textContent=grp.length>1?`같은 디자인 ${grp.length}곳을 함께 저장했어요.`:'저장했어요.'}catch(err){failMsg(err,'저장');render()}});
-$('#list').addEventListener('submit',async e=>{if(e.target.id!=='tdadd')return;e.preventDefault();const tx=$('#td-text').value.trim(),who=$('#td-who').value.trim(),by=$('#td-by').value.trim();if(!tx)return;if(!by){$('#td-by').focus();toast('작성자 이름을 적어 주세요.');return}try{localStorage.setItem('tdName',by)}catch(_){}
+$('#list').addEventListener('submit',async e=>{if(e.target.id!=='tdadd')return;e.preventDefault();const tx=$('#td-text').value.trim(),who=$('#td-who').value.trim();if(!tx)return;
   const id='t-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),o=Math.max(0,...todos.map(t=>+t.o||0))+1;
-  try{await db.doc('meta/'+id).set({kind:'todo',text:tx,who,by,at:nowStamp(),done:false,how:'',o});$('#msg').textContent='할 일을 추가했어요.';setTimeout(()=>{const i=$('#td-text');if(i)i.focus()},50)}catch(err){failMsg(err,'추가')}});
+  try{await db.doc('meta/'+id).set({kind:'todo',text:tx,who,done:false,how:'',o});$('#msg').textContent='할 일을 추가했어요.';setTimeout(()=>{const i=$('#td-text');if(i)i.focus()},50)}catch(err){failMsg(err,'추가')}});
 $('#list').addEventListener('change',async e=>{if(!db)return;
-  const tc=e.target.closest('[data-tdck]');if(tc){const id=tc.dataset.tdck,dn=tc.checked;try{await db.doc('meta/'+id).update({done:dn,doneAt:dn?nowStamp():'',doneBy:dn?myName():''});$('#msg').textContent=dn?'완료했어요. 아래 칸에 어떻게 완료했는지 적어 주세요.':'다시 할 일로 돌렸어요.';if(dn)setTimeout(()=>{const h=document.querySelector(`[data-tdh="${id}"]`);if(h)h.focus()},400)}catch(err){failMsg(err,'저장');render()}return}
+  const tc=e.target.closest('[data-tdck]');if(tc){const id=tc.dataset.tdck,dn=tc.checked;try{await db.doc('meta/'+id).update({done:dn,doneAt:dn?nowStamp():''});$('#msg').textContent=dn?'완료했어요. 아래 칸에 어떻게 완료했는지 적어 주세요.':'다시 할 일로 돌렸어요.';if(dn)setTimeout(()=>{const h=document.querySelector(`[data-tdh="${id}"]`);if(h)h.focus()},400)}catch(err){failMsg(err,'저장');render()}return}
   for(const [a,f] of [['tdt','text'],['tdh','how'],['tdw','who']]){const el=e.target.closest(`[data-${a}]`);if(el){try{await db.doc('meta/'+el.dataset[a]).update({[f]:el.value.trim()});$('#msg').textContent='저장했어요.'}catch(err){failMsg(err,'저장')}return}}
   const vs=e.target.closest('[data-vsel]');if(vs){try{await db.doc('items/'+vs.dataset.vsel).update({rv:vs.value});$('#msg').textContent=vs.value?`${vName(vOf(vs.value))}로 정했어요.`:'대여 업체를 비웠어요.'}catch(err){failMsg(err,'저장');render()}return}
   const vf=e.target.closest('[data-vf]');if(vf){const [vid,k]=vf.dataset.vf.split(':'),v=vOf(vid);if(!v)return;v[k]=k==='total'?(+vf.value.replace(/[^\d]/g,'')||''):vf.value.trim();try{await saveRent({});$('#msg').textContent='업체 정보를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
@@ -488,6 +534,13 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     const id=vdl.dataset.vdel;rentV=rentV.filter(v=>v.id!==id);try{await saveRent({});for(const r of rows.filter(x=>x.rv===id))await db.doc('items/'+r.id).update({rv:''});$('#msg').textContent='업체를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
   const tdd=e.target.closest('[data-tddel]');if(tdd){if(!tdd.dataset.arm){tdd.dataset.arm='1';tdd.textContent='정말 삭제';tdd.classList.add('arm');setTimeout(()=>{if(tdd.isConnected){delete tdd.dataset.arm;tdd.textContent='삭제';tdd.classList.remove('arm')}},3000);return}
     try{await db.doc('meta/'+tdd.dataset.tddel).delete();$('#msg').textContent='할 일을 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
+  if(e.target.closest('[data-secun]')){secUnlock();return}
+  if(e.target.closest('[data-seclock]')){secLock();toast('서류를 잠갔어요.');return}
+  const su=e.target.closest('[data-secup]');if(su){if(!SEC.key&&!(await secUnlock()))return;secFor=su.dataset.secup;secIn.click();return}
+  const sv=e.target.closest('[data-secv]');if(sv){const [id,i]=sv.dataset.secv.split(':'),r=rows.find(x=>x.id===id),d=r&&(r.sdocs||[])[+i];if(!d||!SEC.key)return;try{$('#lbimg').src=await secOpen(d);$('#lbcap').textContent=`${r.name} · ${SECK[d.k]} (잠금 서류)`;$('#lb').classList.add('sec');$('#lb').hidden=false;$('#lbx').focus();secArm()}catch(err){toast('서류를 열 수 없어요.')}return}
+  const sd=e.target.closest('[data-secdel]');if(sd){if(!sd.dataset.arm){sd.dataset.arm='1';sd.textContent='삭제';sd.classList.add('arm');setTimeout(()=>{if(sd.isConnected){delete sd.dataset.arm;sd.textContent='×';sd.classList.remove('arm')}},3000);return}
+    const [id,i]=sd.dataset.secdel.split(':'),r=rows.find(x=>x.id===id);if(!r)return;const L=(r.sdocs||[]).slice(),gone=L.splice(+i,1)[0];
+    try{await db.doc('items/'+id).update({sdocs:L});if(gone)await secB().remove([gone.f]);$('#msg').textContent='서류를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
   const sf=e.target.closest('[data-stf]');if(sf){stF=sf.dataset.stf===''?null:+sf.dataset.stf;render();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
     if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
@@ -526,7 +579,7 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
       if(assets){try{await assets.delete(aid)}catch(_){}}}catch(err){failMsg(err,'삭제')}
     return}
   const t=e.target.closest('[data-img]');if(t){$('#lbimg').src=BLOB(t.dataset.img);$('#lbcap').textContent=t.dataset.cap;$('#lb').hidden=false;$('#lbx').focus()}});
-const closeLb=()=>{$('#lb').hidden=true};$('#lbx').addEventListener('click',closeLb);$('#lb').addEventListener('click',e=>{if(e.target.id==='lb')closeLb()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+const closeLb=()=>{$('#lb').hidden=true;if($('#lb').classList.contains('sec')){$('#lb').classList.remove('sec');$('#lbimg').removeAttribute('src')}};$('#lb').addEventListener('contextmenu',e=>{if($('#lb').classList.contains('sec'))e.preventDefault()});$('#lbx').addEventListener('click',closeLb);$('#lb').addEventListener('click',e=>{if(e.target.id==='lb')closeLb()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
 let pend=null;
 const FF=['cat','name','who','sex','qty','loc','note','code','link','vendor','vlink'];
 const setTab=k=>{kind=k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===k))};
@@ -862,7 +915,7 @@ $('#list').addEventListener('dragover',e=>{const z=rczOf(e);if(!z||!e.dataTransf
 $('#list').addEventListener('dragleave',e=>{const z=rczOf(e);const box=z&&(z.closest('.row')||z);if(z&&!box.contains(e.relatedTarget))z.classList.remove('over')});
 $('#list').addEventListener('drop',e=>{const z=rczOf(e);if(!z)return;e.preventDefault();z.classList.remove('over');const fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;
   if(z.dataset.rcz){rcUpload(z.dataset.rcz,fs);return}const [t,...k]=z.dataset.dz.split(':');
-  if(t==='p')pimUpload(k[0],fs[0]);else if(t==='d')proofUpload(k[0],[...fs].filter(f=>/^image\//.test(f.type)||isPdf(f)));else if(t==='v')vjUpload(k.join(':'),fs[0])});
+  if(t==='p')pimUpload(k[0],fs[0]);else if(t==='d')proofUpload(k[0],[...fs].filter(f=>/^image\//.test(f.type)||isPdf(f)));else if(t==='v')vjUpload(k.join(':'),fs[0]);else if(t==='s')secUpload(k[0],k[1],fs)});
 addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});addEventListener('drop',e=>{if(!e.target.closest||!(e.target.closest('.row')||e.target.closest('[data-rcz]')||e.target.closest('[data-dz]')))e.preventDefault()});
 render();
 (async()=>{

@@ -71,3 +71,13 @@ insert into public.editors (email) values
   ('900arin@kyvikos.com'),
   ('methodair1552@gmail.com')
 on conflict do nothing;
+
+-- 8) 잠금 서류 저장소 (인력 신분증·통장사본). 공개 아님: 편집자로 로그인한 사람만 읽기·올리기·지우기.
+--    파일은 브라우저에서 잠금 비밀번호로 암호화한 뒤 올라가요. 비밀번호는 어디에도 저장하지 않아요.
+insert into storage.buckets (id, name, public) values ('secure', 'secure', false) on conflict (id) do update set public = false;
+drop policy if exists "secure editors read" on storage.objects;
+drop policy if exists "secure editors insert" on storage.objects;
+drop policy if exists "secure editors delete" on storage.objects;
+create policy "secure editors read" on storage.objects for select to authenticated using (bucket_id = 'secure' and public.is_editor());
+create policy "secure editors insert" on storage.objects for insert to authenticated with check (bucket_id = 'secure' and public.is_editor());
+create policy "secure editors delete" on storage.objects for delete to authenticated using (bucket_id = 'secure' and public.is_editor());
