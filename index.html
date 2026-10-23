@@ -106,6 +106,14 @@ select:disabled{opacity:.85}
 .card .tot{font-size:12px;color:var(--muted);margin-top:8px}.card .tot b{color:var(--ink);font-size:13px}
 .prc{font-size:13px;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.prc .wl{font-size:11.5px;color:var(--muted)}.prc b{font-variant-numeric:tabular-nums}.prc .pn{color:var(--muted);font-size:12px}
 .mv.fx{color:var(--accent)}
+.row.hs{grid-template-columns:minmax(0,1fr) 64px 220px}.row.hs>div:first-child{grid-row:span 2}
+.side{grid-column:2/-1;display:grid;gap:6px;align-content:start}
+.pay{display:flex;flex-wrap:wrap;gap:6px}
+.pay select.ps{width:auto;flex:1 1 96px;border-left-width:5px;border-left-color:var(--line)}.pay select.ps[data-v=""]{color:var(--muted)}
+.pay select[data-pf="paid"][data-v="결제 진행중"]{border-left-color:var(--prog)}.pay select[data-pf="paid"][data-v="결제 완료"]{border-left-color:var(--done)}
+.pay.ro span{font-size:12px;padding:1px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}.pay.ro .pd{color:var(--prog);border-color:var(--prog)}.pay.ro .pd.ok{color:var(--done);border-color:var(--done)}
+.memo{font:inherit;font-size:13px;width:100%;min-height:54px;resize:vertical;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);box-sizing:border-box}
+.memo::placeholder{color:var(--muted)}.memo.ro{min-height:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .prc input{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
 .lnk.vd .wl{font-size:11.5px;color:var(--muted)}.lnk.vd b{font-size:13px}
 .rm,.mv{font:inherit;font-size:11.5px;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 4px;text-decoration:underline}
@@ -152,7 +160,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
 .authbar form{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.authbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:160px}
 .authbar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 12px;cursor:pointer}
 .row.hl{background:var(--accent-soft);transition:background .3s}
-@media (max-width:560px){.row{grid-template-columns:minmax(0,1fr) 120px}.qty{grid-column:2;grid-row:1;text-align:right}.row select{grid-column:1/-1}}
+@media (max-width:560px){.row,.row.hs{grid-template-columns:minmax(0,1fr) 120px}.row.hs>div:first-child{grid-row:auto}.qty{grid-column:2;grid-row:1;text-align:right}.row>select{grid-column:1/-1}.side{grid-column:1/-1}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -211,6 +219,16 @@ const KN={design:'디자인',rent:'대여',buy:'구매',staff:'인력'};
 let rows=[],kind='design',openOnly=false,db=null,assets=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// 오른쪽 칸: 대여·구매는 결제 방식/세금계산서/결제 상태, 물품(디자인·대여·구매)은 메모
+function sideHTML(r){
+  if(r.kind==='staff')return '';const ed=ED();let h='';
+  if(r.kind==='buy'||r.kind==='rent'){
+    const sel=(f,val,opts,lab)=>`<select class="ps" data-pf="${f}" data-rid="${r.id}" data-v="${esc(val)}" aria-label="${esc(r.name)} ${lab}"><option value="">${lab}</option>${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+    if(ed)h+=`<div class="pay">${sel('pay',r.pay||'',['계좌','카드'],'결제 방식')}${r.pay==='계좌'?sel('tax',r.tax||'',['발행','미발행'],'세금계산서'):''}${sel('paid',r.paid||'',['결제 진행중','결제 완료'],'결제 상태')}</div>`;
+    else if(r.pay||r.paid)h+=`<div class="pay ro">${r.pay?`<span>${esc(r.pay)}</span>`:''}${r.pay==='계좌'&&r.tax?`<span>세금계산서 ${esc(r.tax)}</span>`:''}${r.paid?`<span class="pd${r.paid==='결제 완료'?' ok':''}">${esc(r.paid)}</span>`:''}</div>`}
+  if(ed)h+=`<textarea class="memo" data-memo="${r.id}" rows="2" placeholder="메모" aria-label="${esc(r.name)} 메모">${esc(r.memo||'')}</textarea>`;
+  else if(r.memo)h+=`<div class="memo ro">${esc(r.memo)}</div>`;
+  return h?`<div class="side">${h}</div>`:''}
 const doneOf=r=>r.kind==='design'||r.kind==='staff'?(r.st||0)>=1:(r.st||0)>=2;
 
 let canW=null,meInfo=null;const ED=()=>!!db&&canW===true;
@@ -258,6 +276,7 @@ function renderMap(){
     pend.pins.forEach((p,i)=>pill(svg,p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
 }
 function render(){
+  const fa=document.activeElement,fm=fa&&fa.dataset&&fa.dataset.memo?{id:fa.dataset.memo,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   summary();const isVJ=kind==='vj';$('#mapc').hidden=isVJ;$('#addbtn').hidden=isVJ||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   renderMap();
   let rs=rows.filter(r=>kind==='all'||r.kind===kind);
@@ -269,8 +288,9 @@ function render(){
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
     const proofs=r.kind==='design'?`<div class="proofs">${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
-    if(ie&&ie.id===r.id)return ieHTML(r);
-    return `<div class="row"><div><div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(r.link&&r.kind!=='design')?`<div class="lnk">${r.link&&/^https?:\/\//.test(r.link)?`<a href="${esc(r.link)}" target="_blank" rel="noopener">구매 링크 ↗</a>`:'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${r.link?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${proofs}</div>`}).join('')}</section>`).join('');
+    if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r);
+    return `<div class="row${r.kind!=='staff'?' hs':''}"><div><div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(r.link&&r.kind!=='design')?`<div class="lnk">${r.link&&/^https?:\/\//.test(r.link)?`<a href="${esc(r.link)}" target="_blank" rel="noopener">구매 링크 ↗</a>`:'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${r.link?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+  if(fm){const t=document.querySelector(`[data-memo="${fm.id}"]`);if(t){t.value=fm.v;t.focus();t.setSelectionRange(fm.a,fm.b)}}
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
 try{const t=localStorage.getItem('tab');if(t){kind=t;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===t))}}catch(e){}
@@ -278,6 +298,11 @@ $('#open-only').addEventListener('change',e=>{openOnly=e.target.checked;render()
 $('#list').addEventListener('change',async e=>{const s=e.target.closest('select[data-id]');if(!s||!db)return;const v=+s.value;s.dataset.s=v;
   const me=rows.find(x=>x.id===s.dataset.id),grp=me&&me.grp?rows.filter(x=>x.grp===me.grp):[me];
   try{for(const x of grp)await db.doc('items/'+x.id).update({st:v});$('#msg').textContent=grp.length>1?`같은 디자인 ${grp.length}곳을 함께 저장했어요.`:'저장했어요.'}catch(err){failMsg(err,'저장');render()}});
+$('#list').addEventListener('change',async e=>{if(!db)return;
+  const p=e.target.closest('select.ps');if(p){const v=p.value;p.dataset.v=v;
+    try{await db.doc('items/'+p.dataset.rid).update({[p.dataset.pf]:v});$('#msg').textContent='저장했어요.'}catch(err){failMsg(err,'저장');render()}return}
+  const m=e.target.closest('[data-memo]');if(m){const id=m.dataset.memo,v=m.value.trim();
+    try{await db.doc('items/'+id).update({memo:v});$('#msg').textContent=v?'메모를 저장했어요.':'메모를 지웠어요.'}catch(err){failMsg(err,'저장')}}});
 const fileIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*,application/pdf',multiple:true});let upFor=null;
 fileIn.addEventListener('change',async()=>{const r=rows.find(x=>x.id===upFor);if(!r||!fileIn.files.length)return;$('#msg').textContent='올리는 중이에요…';
   try{const ids=[...(r.imgs||[])];for(const f of fileIn.files){const res=await assets.upload(f);ids.push(res.id)}
