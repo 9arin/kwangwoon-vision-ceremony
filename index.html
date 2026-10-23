@@ -107,6 +107,10 @@ select:disabled{opacity:.85}
 .prc{font-size:13px;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.prc .wl{font-size:11.5px;color:var(--muted)}.prc b{font-variant-numeric:tabular-nums}.prc .pn{color:var(--muted);font-size:12px}
 .mv.fx{color:var(--accent)}
 .lnk a+a{margin-left:4px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.bmk{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--muted);display:grid;gap:6px}.bmk b{color:var(--ink)}
+.bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
+.bmk .x{justify-self:start;font:inherit;font-size:12px;border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
 .hp{display:flow-root}.pim{float:left;position:relative;width:72px;height:72px;margin:0 12px 6px 0;border-radius:8px}
 .pim .pup{width:72px;height:72px;padding:0;line-height:1.35;font-size:12px}.pim.none{border:1px dashed var(--line);background:var(--bg)}
 .pim.over,.proofs.over,.sbox.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft);border-radius:8px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
@@ -225,6 +229,32 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 // 링크: 첫 번째는 link, 나머지는 links 배열
 const linksOf=r=>[r.link,...(r.links||[])].filter(Boolean);
 const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return '링크'}};
+// ── 자동 가져오기: 즐겨찾기 버튼(북마클릿)이 상품 페이지에서 사진·가격을 읽어 이 페이지를 #fill=… 로 열어 줌 ──
+const PAGE=location.origin+location.pathname;
+const BMK_SRC=`(()=>{const P='${PAGE}';let img='',price=0,name='';const pr=v=>+String(v||'').replace(/[^\\d.]/g,'')||0,q=s=>document.querySelector(s);
+for(const s of document.querySelectorAll('script[type="application/ld+json"]')){try{const j=JSON.parse(s.textContent);for(const o of [].concat(j,j['@graph']||[])){if(o&&/Product/.test(o['@type'])){name=name||o.name||'';const im=[].concat(o.image||[])[0];img=img||(typeof im==='string'?im:im&&im.url)||'';const f=[].concat(o.offers||[])[0]||{};price=price||pr(f.price||f.lowPrice)}}}catch(e){}}
+price=price||pr(q('.final-price-amount')&&q('.final-price-amount').textContent)||pr(q('meta[property="product:price:amount"]')&&q('meta[property="product:price:amount"]').content);
+img=img||(q('meta[property="og:image"]')&&q('meta[property="og:image"]').content)||'';if(img.startsWith('//'))img='https:'+img;else if(img&&!/^https?:/.test(img))img=new URL(img,location.href).href;
+name=name||(q('meta[property="og:title"]')&&q('meta[property="og:title"]').content)||document.title;
+if(!img&&!price){alert('이 페이지에서 사진이나 가격을 찾지 못했어요.');return}
+window.open(P+'#fill='+encodeURIComponent(JSON.stringify({u:location.href,img:img,price:price,name:String(name).slice(0,80)})),'_blank');setTimeout(()=>window.close(),300)})()`;
+const BMK='javascript:'+encodeURIComponent(BMK_SRC.replace(/\n/g,''));
+const bmkHTML=()=>`<div class="bmk"><div><b>자동 가져오기</b> · 처음 한 번만: 아래 버튼을 크롬 <b>즐겨찾기 막대</b>로 끌어다 놓으세요. (막대가 안 보이면 Cmd+Shift+B)</div><div><a class="bmkl" href="${esc(BMK)}" data-bmk>⭐ 현황판에 담기</a></div><div>쓰는 법: 물품 옆 <b>가져오기</b> → 열린 상품 페이지에서 즐겨찾기의 <b>⭐ 현황판에 담기</b> → 사진과 가격이 들어가요.</div><button type="button" class="x" data-bmkhide>이 안내 숨기기</button></div>`;
+let bmkHidden=false;try{bmkHidden=localStorage.getItem('bmkHidden')==='1'}catch(e){}
+const toast=t=>{let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{el.hidden=true},6000)};
+const pkey=u=>{try{const x=new URL(u),m=x.pathname.match(/\/(?:vp|vm)\/products\/(\d+)/);return m?'cp:'+m[1]:x.host.replace(/^(www|m)\./,'')+x.pathname.replace(/\/$/,'')+(x.searchParams.get('id')?'?id='+x.searchParams.get('id'):'')}catch(e){return u}};
+let fill=null;try{if(location.hash.startsWith('#fill=')){fill=JSON.parse(decodeURIComponent(location.hash.slice(6)));history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
+async function tryFill(){if(!fill||!rows.length||canW===null)return;const f=fill;fill=null;
+  if(!canW){toast('편집 비밀번호로 들어온 뒤 다시 눌러 주세요.');return}
+  let g=null;try{g=JSON.parse(localStorage.getItem('grabFor')||'null')}catch(e){}
+  const k=pkey(f.u);let r=rows.find(x=>x.kind==='buy'&&linksOf(x).some(u=>pkey(u)===k));
+  if(!r&&g&&Date.now()-g.t<36e5)r=rows.find(x=>x.id===g.id);
+  if(!r){toast('어느 물품인지 찾지 못했어요. 현황판에서 물품 옆 ‘가져오기’를 먼저 눌러 주세요.');return}
+  const patch={};if(f.img&&/^https?:\/\//.test(f.img))patch.pimg=f.img;if(+f.price>0)patch.price=Math.round(+f.price);
+  try{await db.doc('items/'+r.id).update(patch);try{localStorage.removeItem('grabFor')}catch(e){}
+    setTab('buy');render();const got=[patch.pimg?'사진':'',patch.price?'가격 '+won(patch.price):''].filter(Boolean).join('과 ');
+    toast(`${r.name}: ${got}을 넣었어요. 이 탭은 곧 닫혀요.`);setTimeout(()=>{try{window.close()}catch(e){}},3000)}
+  catch(err){toast('넣지 못했어요. 편집 비밀번호로 들어왔는지 확인해 주세요.')}}
 // 대여·구매 물품 대표 이미지 (pimg). 편집자는 눌러서 올리거나 끌어다 놓기
 function pimHTML(r){if(r.kind!=='buy'&&r.kind!=='rent')return '';const ed=assets&&ED();
   if(r.pimg)return `<div class="pim"${ed?` data-dz="p:${r.id}"`:''}><button type="button" class="th" data-img="${esc(r.pimg)}" data-cap="${esc(r.name)}" aria-label="${esc(r.name)} 이미지 크게 보기"><img src="${esc(BLOB(r.pimg))}" alt="" loading="lazy"></button>${ed?`<button type="button" class="del" data-pdel="${r.id}" aria-label="${esc(r.name)} 이미지 삭제">×</button>`:''}</div>`;
@@ -294,12 +324,12 @@ function render(){
   if(!rows.length){$('#list').innerHTML='<div class="grp"><div class="empty">아직 등록된 항목이 없어요. Claude에게 목록을 채워 달라고 하면 여기에 나타나요.</div></div>';return}
   if(!rs.length){$('#list').innerHTML='<div class="grp"><div class="empty">이 보기에서는 모두 끝났어요.</div></div>';return}
   const groups=[];rs.forEach(r=>{const key=(kind==='all'?KN[r.kind]+' · ':'')+r.cat;let g=groups.find(x=>x.k===key);if(!g)groups.push(g={k:key,rs:[]});g.rs.push(r)});
-  $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
+  $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+(kind==='buy'&&ED()&&!bmkHidden?bmkHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
     if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r),pim=pimHTML(r);
-    return `<div class="row${r.kind!=='staff'?' hs':''}"><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+    return `<div class="row${r.kind!=='staff'?' hs':''}"><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
   if(fm){const t=document.querySelector(`[data-memo="${fm.id}"]`);if(t){t.value=fm.v;t.focus();t.setSelectionRange(fm.a,fm.b)}}
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
@@ -338,6 +368,10 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     try{await db.doc('items/'+rm.dataset.rm).delete();$('#msg').textContent='항목을 삭제했어요.'}catch(err){failMsg(err,'삭제')}return}
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
     box.innerHTML=`<div class="lned">${(L.length?L:['']).map(lnInp).join('')}<div><button type="button" class="mv" data-lnadd>+ 링크 추가</button> <button type="button" class="mv" data-lnsave="${r.id}">저장</button></div></div>`;box.querySelector('input').focus();return}
+  const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
+    window.open(linksOf(r)[0],'_blank');toast('열린 상품 페이지에서 즐겨찾기의 ‘⭐ 현황판에 담기’를 눌러 주세요.');return}
+  if(e.target.closest('[data-bmk]')){e.preventDefault();toast('이 버튼은 누르지 말고 크롬 즐겨찾기 막대로 끌어다 놓아 주세요.');return}
+  if(e.target.closest('[data-bmkhide]')){bmkHidden=true;try{localStorage.setItem('bmkHidden','1')}catch(_){}render();return}
   const la=e.target.closest('[data-lnadd]');if(la){la.parentElement.insertAdjacentHTML('beforebegin',lnInp(''));la.parentElement.previousElementSibling.focus();return}
   const ls=e.target.closest('[data-lnsave]');if(ls){const L=[...ls.closest('.lned').querySelectorAll('.lni')].map(i=>i.value.trim()).filter(Boolean);
     if(L.some(v=>!/^https?:\/\//.test(v))){$('#msg').textContent='링크는 https:// 로 시작해야 해요.';return}
@@ -659,11 +693,11 @@ render();
   if(!db){$('#list').innerHTML='<div class="grp"><div class="empty">목록을 열 수 없어요. 인터넷 연결을 확인해 주세요.</div></div>';return}
   assets=await claude.use('assets');$('#addbtn').hidden=false;
   claude.use('user').then(async u=>{if(!u)return;try{const [cw,me]=await Promise.all([u.can('data.write'),u.me()]);canW=cw;meInfo=me.email||me.name||'';
-    render();const el=$('#who');el.textContent=cw===false?`보기 전용으로 열려 있어요${meInfo?' · '+meInfo:''}`:cw?`편집 가능${meInfo?' · '+meInfo:''}`:(meInfo?meInfo:'');
+    render();tryFill();const el=$('#who');el.textContent=cw===false?`보기 전용으로 열려 있어요${meInfo?' · '+meInfo:''}`:cw?`편집 가능${meInfo?' · '+meInfo:''}`:(meInfo?meInfo:'');
     if(cw===false){el.style.cssText='color:#c92a2a;font-weight:700';$('#msg').textContent=meInfo?`${meInfo} 계정은 편집자 명단에 없어서 보기만 돼요.`:'지금은 보기 전용이에요. 수정하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}}catch(_){}});
   db.collection('vj').orderBy('o').onSnapshot(s=>{vj=s.docs.map(d=>({id:d.id,...d.data()}));if(vjEdit&&!vj.some(c=>c.id===vjEdit))vjEdit=null;if(vjEdit&&!vjDraft)vjDraft={...vj.find(c=>c.id===vjEdit)};render()},()=>{});
   db.doc('meta/rent').onSnapshot(s=>{const d=s&&s.exists&&s.data?s.data():null;rentRc=(d&&d.rcpts)||[];render()},()=>{});
-  db.collection('items').orderBy('o').onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{$('#msg').textContent='목록을 불러오지 못했어요.'});
+  db.collection('items').orderBy('o').onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()}));render();tryFill()},()=>{$('#msg').textContent='목록을 불러오지 못했어요.'});
 })();
 </script>
 </html>
