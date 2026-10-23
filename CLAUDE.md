@@ -35,6 +35,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 `vj.data`: `no,s,e,item,desc,cast,mat,music,pa,ledL,ledC,ledR,live,rem`, `scr:[{l,img,link}]`
 
 권한: 읽기는 누구나, 쓰기는 `editors` 테이블에 있는 이메일로 로그인한 사람만 (RLS + `is_editor()`).
+로그인은 메일 링크가 아니라 공용 편집 계정(`EDIT_EMAIL`, config.js) + 편집 비밀번호 방식입니다. 화면에는 비밀번호 칸만 있어요.
 
 ## 데이터 고치는 방법
 - 화면에서 고치는 게 기본입니다.

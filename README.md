@@ -28,8 +28,10 @@
 ## 사용
 
 - 누구나 링크로 볼 수 있습니다.
-- 수정은 **편집자 명단(editors 테이블)** 에 있는 이메일로 로그인한 사람만 됩니다.
-  페이지 위쪽에 이메일을 넣으면 로그인 링크가 메일로 옵니다.
+- 수정은 페이지 위쪽에 **편집 비밀번호**를 넣으면 됩니다. 한 번 넣으면 그 브라우저에서는 계속 편집 모드예요.
+  (내부적으로는 공용 계정 `vision-editor@kyvikos.com` 으로 로그인합니다. `config.js` 의 `EDIT_EMAIL`)
+- 비밀번호 바꾸기: Supabase → Authentication → Users 에서 `vision-editor@kyvikos.com` 을 지우고,
+  Add user → Create new user 로 같은 이메일·새 비밀번호를 넣어 다시 만들기 (Auto Confirm User 체크).
 - 편집자 추가: SQL Editor 에서
   `insert into public.editors (email) values ('새이메일@example.com');`
 

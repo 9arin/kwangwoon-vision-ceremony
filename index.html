@@ -149,7 +149,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
 .rcx{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:700 11px var(--sans);cursor:pointer;padding:0 5px;line-height:1}.rcx.arm{background:#c92a2a;color:#fff;border-color:#c92a2a}
 .rcadd{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);cursor:pointer;text-decoration:underline;padding:4px}
 .authbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
-.authbar form{display:flex;gap:6px;flex-wrap:wrap}.authbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:220px}
+.authbar form{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.authbar input{font:inherit;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);min-width:160px}
 .authbar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 12px;cursor:pointer}
 .row.hl{background:var(--accent-soft);transition:background .3s}
 @media (max-width:560px){.row{grid-template-columns:minmax(0,1fr) 120px}.qty{grid-column:2;grid-row:1;text-align:right}.row select{grid-column:1/-1}}
@@ -214,7 +214,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const doneOf=r=>r.kind==='design'||r.kind==='staff'?(r.st||0)>=1:(r.st||0)>=2;
 
 let canW=null,meInfo=null;const ED=()=>!!db&&canW===true;
-function failMsg(err,what){const c=err&&(err.code||err.name)||'오류';$('#msg').textContent=canW===false?`${what}하지 못했어요. ${meInfo?`${meInfo} 계정은 편집자 명단에 없어요. 아린 님에게 추가를 요청해 주세요.`:'편집하려면 오른쪽 위에서 로그인해 주세요.'}`:`${what}하지 못했어요 (${c}). 편집 권한이 있는 계정으로 로그인했는지 확인해 주세요.`}
+function failMsg(err,what){const c=err&&(err.code||err.name)||'오류';$('#msg').textContent=canW===false?`${what}하지 못했어요. ${meInfo?`${meInfo} 계정은 편집자 명단에 없어요. 아린 님에게 추가를 요청해 주세요.`:'편집하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}`:`${what}하지 못했어요 (${c}). 편집 비밀번호로 들어왔는지 확인해 주세요.`}
 const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';const sub=r=>(+r.price||0)*(+r.pq||1);const shipOf=r=>{const f=+r.shipFee||0;if(!f)return 0;return +r.shipFree>0&&sub(r)>=+r.shipFree?0:f};const tot=r=>sub(r)+(+r.price>0?shipOf(r):0);
 const shipTxt=r=>{const f=+r.shipFee||0,t=+r.shipFree||0;if(!f)return r.shipNote?esc(r.shipNote):'';const c=shipOf(r);return c?`+ 배송비 ${won(c)}${t?` <span class="pn">(${won(t)} 이상 무료 · ${won(t-sub(r))} 모자람)</span>`:''}`:`· 배송비 무료 <span class="pn">(${won(t)} 이상 무료 조건 충족)</span>`};
 function summary(){
@@ -607,7 +607,7 @@ render();
   assets=await claude.use('assets');$('#addbtn').hidden=false;
   claude.use('user').then(async u=>{if(!u)return;try{const [cw,me]=await Promise.all([u.can('data.write'),u.me()]);canW=cw;meInfo=me.email||me.name||'';
     render();const el=$('#who');el.textContent=cw===false?`보기 전용으로 열려 있어요${meInfo?' · '+meInfo:''}`:cw?`편집 가능${meInfo?' · '+meInfo:''}`:(meInfo?meInfo:'');
-    if(cw===false){el.style.cssText='color:#c92a2a;font-weight:700';$('#msg').textContent=meInfo?`${meInfo} 계정은 편집자 명단에 없어서 보기만 돼요.`:'지금은 보기 전용이에요. 수정하려면 오른쪽 위에서 이메일로 로그인해 주세요.'}}catch(_){}});
+    if(cw===false){el.style.cssText='color:#c92a2a;font-weight:700';$('#msg').textContent=meInfo?`${meInfo} 계정은 편집자 명단에 없어서 보기만 돼요.`:'지금은 보기 전용이에요. 수정하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}}catch(_){}});
   db.collection('vj').orderBy('o').onSnapshot(s=>{vj=s.docs.map(d=>({id:d.id,...d.data()}));if(vjEdit&&!vj.some(c=>c.id===vjEdit))vjEdit=null;if(vjEdit&&!vjDraft)vjDraft={...vj.find(c=>c.id===vjEdit)};render()},()=>{});
   db.doc('meta/rent').onSnapshot(s=>{const d=s&&s.exists&&s.data?s.data():null;rentRc=(d&&d.rcpts)||[];render()},()=>{});
   db.collection('items').orderBy('o').onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>{$('#msg').textContent='목록을 불러오지 못했어요.'});

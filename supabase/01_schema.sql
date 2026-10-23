@@ -67,6 +67,7 @@ create policy "files editors delete" on storage.objects for delete to authentica
 
 -- 7) 편집자 명단 — 필요한 이메일을 추가하세요
 insert into public.editors (email) values
+  ('vision-editor@kyvikos.com'),  -- 공용 편집 계정 (화면의 편집 비밀번호)
   ('900arin@kyvikos.com'),
   ('methodair1552@gmail.com')
 on conflict do nothing;

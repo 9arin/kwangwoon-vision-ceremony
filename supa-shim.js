@@ -115,22 +115,26 @@
     }
   };
 
-  // ── 로그인 바 (이메일 링크 로그인) ──
+  // ── 로그인 바 (공용 편집 비밀번호) ──
+  // 편집 계정은 하나(config.js 의 EDIT_EMAIL). 화면에는 비밀번호 칸만 보여 주고, 로그인은 브라우저에 유지돼요.
   function bar() {
     const host = document.getElementById('authbar'); if (!host) return;
     sessionP.then(s => {
       if (s) {
         host.innerHTML = '';
-        const sp = document.createElement('span'); sp.textContent = s.user.email + ' 로그인됨';
-        const b = document.createElement('button'); b.type = 'button'; b.textContent = '로그아웃';
+        const sp = document.createElement('span'); sp.textContent = '편집 모드';
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = '편집 끝내기';
         b.onclick = async () => { await sb.auth.signOut(); location.reload(); };
         host.append(sp, b);
       } else {
-        host.innerHTML = '<form><input type="email" required placeholder="편집하려면 이메일 입력" aria-label="로그인 이메일"><button type="submit">로그인 링크 받기</button></form>';
-        host.querySelector('form').onsubmit = async e => {
-          e.preventDefault(); const email = host.querySelector('input').value.trim(); if (!email) return;
-          const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split('#')[0] } });
-          host.querySelector('form').outerHTML = error ? '<span>보내지 못했어요: ' + (error.message || '') + '</span>' : '<span>메일함에서 로그인 링크를 눌러 주세요.</span>';
+        host.innerHTML = '<form><input type="password" required placeholder="편집 비밀번호" aria-label="편집 비밀번호" autocomplete="current-password"><button type="submit">편집하기</button><span class="am" role="status"></span></form>';
+        const f = host.querySelector('form'), am = f.querySelector('.am');
+        f.onsubmit = async e => {
+          e.preventDefault(); const password = f.querySelector('input').value; if (!password) return;
+          am.textContent = '확인 중이에요…';
+          const { error } = await sb.auth.signInWithPassword({ email: window.EDIT_EMAIL, password });
+          if (error) { am.textContent = '비밀번호가 맞지 않아요.'; return; }
+          location.reload();
         };
       }
     });
