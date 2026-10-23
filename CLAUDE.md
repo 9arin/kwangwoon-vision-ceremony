@@ -31,6 +31,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 - 인력: `who`, `sex`(남/여) / 디자인: `imgs`, `vendor`, `vlink`
 - 대여·구매: `price`, `pq`, `pn`, `shipFee`, `shipFree`(이 금액 이상이면 배송비 0), `shipNote`, `link`, `ops`(운영텐트 보관 묶음)
 - 대여·구매 결제: `pay`(계좌|카드), `tax`(발행|미발행, 계좌일 때만), `paid`(결제 진행중|결제 완료) — 주문 상태 `st` 와 별개
+- 링크: 첫 번째는 `link`, 추가 링크는 `links` 배열 (`linksOf(r)` 로 합쳐서 씀)
 - 메모: `memo` (디자인·대여·구매 행 오른쪽 칸)
 - 구매: `rcpts` `[{id,name,type}]` 영수증 / 대여 영수증은 `meta` 의 `rent` 문서 `{rcpts:[…]}` 하나로 묶음
 
