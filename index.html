@@ -114,8 +114,7 @@ select:disabled{opacity:.85}
 .side{grid-column:2/-1;display:grid;gap:6px;align-content:start}
 .pay{display:flex;flex-wrap:wrap;gap:6px}
 .pay select.ps{width:auto;flex:1 1 96px;border-left-width:5px;border-left-color:var(--line)}.pay select.ps[data-v=""]{color:var(--muted)}
-.pay select[data-pf="paid"][data-v="결제 진행중"]{border-left-color:var(--prog)}.pay select[data-pf="paid"][data-v="결제 완료"]{border-left-color:var(--done)}
-.pay.ro span{font-size:12px;padding:1px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}.pay.ro .pd{color:var(--prog);border-color:var(--prog)}.pay.ro .pd.ok{color:var(--done);border-color:var(--done)}
+.pay.ro span{font-size:12px;padding:1px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
 .memo{font:inherit;font-size:13px;width:100%;min-height:54px;resize:vertical;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);box-sizing:border-box}
 .memo::placeholder{color:var(--muted)}.memo.ro{min-height:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .prc input{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
@@ -218,7 +217,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="디자인 보기"><button type="button" id="lbx">닫기</button><div><img id="lbimg" alt=""><p id="lbcap"></p></div></div>
 
 <script>
-const ST={design:['미착수','디자인 완료','출력 발주','설치 완료'],rent:['미발주','발주 완료','입고 완료'],buy:['미구매','결제 완료','입고 완료'],staff:['미배정','배정 완료','당일 확인']};
+const ST={design:['미착수','디자인 완료','출력 발주','설치 완료'],rent:['미발주','결제 완료','입고 완료'],buy:['미구매','결제 완료','입고 완료'],staff:['미배정','배정 완료','당일 확인']};
 const KN={design:'디자인',rent:'대여',buy:'구매',staff:'인력'};
 let rows=[],kind='design',openOnly=false,db=null,assets=null;
 const $=s=>document.querySelector(s);
@@ -230,13 +229,13 @@ const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){re
 function pimHTML(r){if(r.kind!=='buy'&&r.kind!=='rent')return '';const ed=assets&&ED();
   if(r.pimg)return `<div class="pim"${ed?` data-dz="p:${r.id}"`:''}><button type="button" class="th" data-img="${esc(r.pimg)}" data-cap="${esc(r.name)}" aria-label="${esc(r.name)} 이미지 크게 보기"><img src="${esc(BLOB(r.pimg))}" alt="" loading="lazy"></button>${ed?`<button type="button" class="del" data-pdel="${r.id}" aria-label="${esc(r.name)} 이미지 삭제">×</button>`:''}</div>`;
   return ed?`<div class="pim" data-dz="p:${r.id}"><button type="button" class="up pup" data-pup="${r.id}">이미지<br>추가</button></div>`:'<div class="pim none"></div>'}
-// 오른쪽 칸: 대여·구매는 결제 방식/세금계산서/결제 상태, 물품(디자인·대여·구매)은 메모
+// 오른쪽 칸: 대여·구매는 결제 방식/세금계산서, 물품(디자인·대여·구매)은 메모
 function sideHTML(r){
   if(r.kind==='staff')return '';const ed=ED();let h='';
   if(r.kind==='buy'||r.kind==='rent'){
     const sel=(f,val,opts,lab)=>`<select class="ps" data-pf="${f}" data-rid="${r.id}" data-v="${esc(val)}" aria-label="${esc(r.name)} ${lab}"><option value="">${lab}</option>${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
-    if(ed)h+=`<div class="pay">${sel('pay',r.pay||'',['계좌','카드'],'결제 방식')}${r.pay==='계좌'?sel('tax',r.tax||'',['발행','미발행'],'세금계산서'):''}${r.kind==='rent'?sel('paid',r.paid||'',['결제 진행중','결제 완료'],'결제 상태'):''}</div>`;
-    else if(r.pay||(r.kind==='rent'&&r.paid))h+=`<div class="pay ro">${r.pay?`<span>${esc(r.pay)}</span>`:''}${r.pay==='계좌'&&r.tax?`<span>세금계산서 ${esc(r.tax)}</span>`:''}${r.kind==='rent'&&r.paid?`<span class="pd${r.paid==='결제 완료'?' ok':''}">${esc(r.paid)}</span>`:''}</div>`}
+    if(ed)h+=`<div class="pay">${sel('pay',r.pay||'',['계좌','카드'],'결제 방식')}${r.pay==='계좌'?sel('tax',r.tax||'',['발행','미발행'],'세금계산서'):''}</div>`;
+    else if(r.pay)h+=`<div class="pay ro">${r.pay?`<span>${esc(r.pay)}</span>`:''}${r.pay==='계좌'&&r.tax?`<span>세금계산서 ${esc(r.tax)}</span>`:''}</div>`}
   if(ed)h+=`<textarea class="memo" data-memo="${r.id}" rows="2" placeholder="메모" aria-label="${esc(r.name)} 메모">${esc(r.memo||'')}</textarea>`;
   else if(r.memo)h+=`<div class="memo ro">${esc(r.memo)}</div>`;
   return h?`<div class="side">${h}</div>`:''}
