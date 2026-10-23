@@ -424,7 +424,8 @@ const SEC={key:null,url:new Map(),t:0},SECK={id:'신분증',bank:'통장사본'}
 const b64=u=>{let s='';new Uint8Array(u).forEach(c=>s+=String.fromCharCode(c));return btoa(s)},ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const secB=()=>sb.storage.from('secure');
 async function secKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
-async function secCheck(){const {data,error}=await secB().download('check.json');if(error){if(/not.?found|404|400/i.test(String(error.message||error.status||error.statusCode)))return null;throw error}return JSON.parse(await data.text())}
+async function secCheck(){const {data:ls,error:le}=await secB().list('',{search:'check.json'});if(le)throw le;if(!(ls||[]).some(o=>o.name==='check.json'))return null;
+  const {data,error}=await secB().download('check.json');if(error)throw error;return JSON.parse(await data.text())}
 function secLock(){SEC.key=null;SEC.url.forEach(u=>{if(u.startsWith('blob:'))URL.revokeObjectURL(u)});SEC.url.clear();clearTimeout(SEC.t);render()}
 function secArm(){clearTimeout(SEC.t);SEC.t=setTimeout(()=>{secLock();toast('15분이 지나 서류를 다시 잠갔어요.')},15*60e3)}
 function secUnlock(){return new Promise(async done=>{let c;try{c=await secCheck()}catch(e){toast('잠금 저장소를 열 수 없어요. 편집 비밀번호로 들어왔는지 확인해 주세요.');return done(false)}
