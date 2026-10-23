@@ -120,6 +120,10 @@ select:disabled{opacity:.85}
 .vread{font-size:12.5px;color:var(--accent)}.vchip{font-size:12px;padding:1px 10px;border-radius:999px;color:#fff;background:var(--vc);font-weight:600}
 .row.vrow{box-shadow:inset 7px 0 0 var(--vc)}.pay select[data-vsel]:not([data-v=""]){border-left-color:var(--vc)}
 .vpl{max-height:55vh;overflow:auto;display:grid;gap:2px;border:1px solid var(--line);border-radius:8px;padding:6px}.vpl label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;font-size:14px;cursor:pointer}.vpl label:hover{background:var(--bg)}.vpl small{color:var(--muted);margin-left:auto;font-size:12px}
+.dlgc.wide{max-width:620px}.gpsum{display:flex;gap:10px;align-items:center;font-size:14px}.gpsum .bar{flex:1;height:10px}
+.gpl{max-height:60vh;overflow:auto;display:grid;gap:6px}.gpi{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);padding:6px 10px 6px 6px;cursor:pointer}
+.gpi:hover{border-color:var(--muted)}.gpi img,.gpi .ni{width:52px;height:52px;border-radius:8px;object-fit:cover;background:var(--bg);border:1px solid var(--line)}.gpi b{display:block;font-size:14px}.gpi small{color:var(--muted);font-size:12.5px}
+.gpi .gs{font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;color:#fff;background:var(--gc);white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -359,17 +363,34 @@ function renderMap(){
   const svg=$('#pins');svg.innerHTML='';legend(kind);
   const k=kind==='all'?'design':kind,ed=pend&&pend.edit?pend.id:null,onPlaza=mapView==='plaza';mapvBar(k);
   if(k!=='design'&&onPlaza){const [X,Y]=ANCH.recep;mk('text',{x:X,y:Y-32,'text-anchor':'middle',style:'font:700 17px var(--sans);fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px'},svg).textContent='리셉션 (건물 내부)'}
-  const ops=[],L=[],add=(X,Y,lab,col,aria,go,dot)=>L.push({X,Y,lab,col,aria,go,dot});
-  rows.filter(r=>r.kind===k&&stOk(r)).forEach(r=>{if(r.ops)ops.push(r);if(r.id===ed)return;
-    const has=r.kind==='design'&&(r.imgs||[]).length;
-    (r.pins||[]).filter(p=>pm(p)===mapView).forEach(p=>{const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
+  const ops=[],rec=[],L=[],add=(X,Y,lab,col,aria,go,dot)=>L.push({X,Y,lab,col,aria,go,dot});
+  rows.filter(r=>r.kind===k&&stOk(r)).forEach(r=>{if(r.ops)ops.push({r,lab:'운영텐트 보관'});if(r.id===ed)return;
+    const has=r.kind==='design'&&(r.imgs||[]).length,grp=(k==='rent'||k==='buy')&&onPlaza;
+    if(grp&&r.cat==='리셉션'){rec.push({r,lab:(r.pins||[]).filter(p=>pm(p)==='plaza').map(p=>p.l||autoLab(r)).join(' · ')||r.loc||''});return}
+    (r.pins||[]).filter(p=>pm(p)===mapView).forEach(p=>{if(grp&&inRecep(p)){rec.push({r,lab:p.l||autoLab(r)});return}const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
       add(p.x,p.y,lab,colOf(r),`${lab} ${r.name}${r.kind==='staff'?' 담당 '+(r.who||'미정'):''} ${r.loc||''} ${ST[r.kind][r.st||0]}`,()=>{if(has)openImg(r);else goRow(r)},has)})});
-  if(ops.length&&onPlaza){const done=ops.filter(doneOf).length,col=done===ops.length?'--done':done?'--prog':'--todo';
-    add(OPSAT[0],OPSAT[1],`운영텐트 보관 ${done}/${ops.length}`,col,`운영텐트 보관 물품 ${ops.length}종 중 ${done}종 확보`,()=>goRow(ops.find(r=>!doneOf(r))||ops[0]))}
+  const group=(G,X,Y,name)=>{const n=new Set(G.map(g=>g.r.id)).size,done=new Set(G.filter(g=>doneOf(g.r)).map(g=>g.r.id)).size,col=done===n?'--done':done?'--prog':'--todo';
+    add(X,Y,`${name} ${done}/${n}`,col,`${name} 물품 ${n}종 중 ${done}종 확보. 눌러서 자세히 보기`,()=>groupPop(name,G,k))};
+  if(ops.length&&onPlaza)group(ops,OPSAT[0],OPSAT[1],'운영텐트 보관');
+  if(rec.length)group(rec,ANCH.recep[0],ANCH.recep[1],'리셉션');
   if(pend&&pend.pins){const nm=$('#f-name').value.trim()||'새 항목';
     pend.pins.forEach((p,i)=>pm(p)===mapView&&add(p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
   layoutPills(svg,L);
 }
+// 리셉션 건물 안(도면 오른쪽) 표시인지
+const inRecep=p=>pm(p)==='plaza'&&p.x>=1480&&p.y>=440;
+// 운영텐트·리셉션 묶음 표시를 누르면 뜨는 창: 사진·수량·상태·진행률
+function groupPop(name,G,k){const seen=new Map();G.forEach(g=>{const o=seen.get(g.r.id);if(o){if(g.lab&&!o.labs.includes(g.lab))o.labs.push(g.lab)}else seen.set(g.r.id,{r:g.r,labs:g.lab?[g.lab]:[]})});
+  const its=[...seen.values()],n=its.length,c=ST[k].map((_,i)=>its.filter(x=>(x.r.st||0)===i).length),done=its.filter(x=>doneOf(x.r)).length;
+  const img=r=>r.pimg||(r.imgs||[])[0],d=document.createElement('div');d.className='dlg';
+  d.innerHTML=`<div class="dlgc wide" role="dialog" aria-modal="true" aria-label="${esc(name)} ${KN[k]} 물품"><h3>${esc(name)} · ${KN[k]} 물품</h3>
+  <div class="gpsum"><b>${done} / ${n} 확보</b><div class="bar">${c.map((x,i)=>i&&x?`<i style="width:${x/n*100}%;background:var(${CL[k][i]})"></i>`:'').join('')}</div></div>
+  <div class="gpsum" style="flex-wrap:wrap;font-size:13px;color:var(--muted)">${ST[k].map((x,i)=>`<span><span style="color:var(${CL[k][i]})">●</span> ${x} ${c[i]}</span>`).join('')}</div>
+  <div class="gpl">${its.sort((a,b)=>(a.r.st||0)-(b.r.st||0)).map(({r,labs})=>`<button type="button" class="gpi" data-go="${r.id}">${img(r)?`<img src="${esc(BLOB(img(r)))}" alt="" loading="lazy">`:'<span class="ni"></span>'}<span><b>${esc(r.name)}</b><small>${esc([labs.join(' · ')||('수량 '+(r.qty||'—')),r.loc].filter(Boolean).join(' · '))}</small></span><span class="gs" style="--gc:var(${colOf(r)})">${ST[k][r.st||0]}</span></button>`).join('')}</div>
+  <div class="acts"><button type="button" data-x>닫기</button></div></div>`;
+  document.body.appendChild(d);const close=()=>d.remove();
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))return close();const b=e.target.closest('[data-go]');if(b){close();const r=rows.find(x=>x.id===b.dataset.go);if(r)goRow(r)}});
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')close()});d.querySelector('[data-x]').focus()}
 // 구매 탭: 상태별로 골라 보기 (전체 / 미구매 / 결제 완료 / 입고 완료)
 const stOk=r=>r.kind!=='buy'||stF===null||(r.st||0)===stF;
 function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<button type="button" data-stf="${v}" aria-pressed="${String(v)===String(stF??'')}">${col?`<i style="background:var(${col})"></i>`:''}${lab} <b>${n}</b></button>`;
