@@ -139,6 +139,8 @@ select:disabled{opacity:.85}
 .sth{width:56px;height:56px}.sth img{width:100%;height:100%;object-fit:cover;border-radius:7px;display:block;-webkit-user-drag:none;user-select:none}
 .dlgc input[type=password]{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}.secerr{color:#e03131;font-size:13px;min-height:1.2em;margin:0}
 #lb.sec img{-webkit-user-drag:none;user-select:none;pointer-events:none}
+.who .tel{width:130px;font:inherit;font-size:13px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);margin-left:4px}
+#lbdl{position:absolute;top:16px;right:96px;font:inherit;font-size:14px;border:0;border-radius:8px;padding:8px 14px;background:#fff;color:#111;cursor:pointer}#lb.sec #lbdl{display:none}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -258,7 +260,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
   <main id="list"><div class="grp"><div class="empty">목록을 불러오는 중이에요…</div></div></main>
   <p class="msg" id="msg">상태는 바로 저장돼요. 디자인 항목은 ‘시안 올리기’로 완성본을 붙이고, 썸네일의 ×를 두 번 누르면 지워져요.</p>
 </div>
-<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="디자인 보기"><button type="button" id="lbx">닫기</button><div><img id="lbimg" alt=""><p id="lbcap"></p></div></div>
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="디자인 보기"><button type="button" id="lbdl">⬇ 내려받기</button><button type="button" id="lbx">닫기</button><div><img id="lbimg" alt=""><p id="lbcap"></p></div></div>
 
 <script>
 const ST={design:['미착수','디자인 완료','출력 발주','설치 완료'],rent:['미발주','결제 완료','입고 완료'],buy:['미구매','결제 완료','입고 완료'],staff:['미배정','배정 완료','당일 확인']};
@@ -322,14 +324,16 @@ function sideHTML(r){
   if(ed)h+=`<textarea class="memo" data-memo="${r.id}" rows="2" placeholder="메모" aria-label="${esc(r.name)} 메모">${esc(r.memo||'')}</textarea>`;
   else if(r.memo)h+=`<div class="memo ro">${esc(r.memo)}</div>`;
   return h?`<div class="side">${h}</div>`:''}
-const doneOf=r=>r.kind==='design'||r.kind==='staff'?(r.st||0)>=1:(r.st||0)>=2;
+// 광운대 의전: 우리가 사람을 정하지 않음 → 담당·상태 없이 도면에 자리만 표시
+const isProto=r=>r.kind==='staff'&&/의전/.test(r.cat||'');
+const doneOf=r=>isProto(r)||r.kind==='design'||r.kind==='staff'?(r.st||0)>=1:(r.st||0)>=2;
 
 let canW=null,meInfo=null;const ED=()=>!!db&&canW===true;
 function failMsg(err,what){const c=err&&(err.code||err.name)||'오류';$('#msg').textContent=canW===false?`${what}하지 못했어요. ${meInfo?`${meInfo} 계정은 편집자 명단에 없어요. 아린 님에게 추가를 요청해 주세요.`:'편집하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}`:`${what}하지 못했어요 (${c}). 편집 비밀번호로 들어왔는지 확인해 주세요.`}
 const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';const sub=r=>(+r.price||0)*(+r.pq||1);const shipOf=r=>{const f=+r.shipFee||0;if(!f)return 0;return +r.shipFree>0&&sub(r)>=+r.shipFree?0:f};const tot=r=>sub(r)+(+r.price>0?shipOf(r):0);
 const shipTxt=r=>{const f=+r.shipFee||0,t=+r.shipFree||0;if(!f)return r.shipNote?esc(r.shipNote):'';const c=shipOf(r);return c?`+ 배송비 ${won(c)}${t?` <span class="pn">(${won(t)} 이상 무료 · ${won(t-sub(r))} 모자람)</span>`:''}`:`· 배송비 무료 <span class="pn">(${won(t)} 이상 무료 조건 충족)</span>`};
 function summary(){
-  const card=(k)=>{const rs=rows.filter(r=>r.kind===k),n=rs.length;const c=[0,0,0,0];rs.forEach(r=>c[r.st||0]++);
+  const card=(k)=>{const rs=rows.filter(r=>r.kind===k&&!isProto(r)),n=rs.length;const c=[0,0,0,0];rs.forEach(r=>c[r.st||0]++);
     const done=rs.filter(doneOf).length;const w=i=>n?c[i]/n*100:0;
     const bar=k==='staff'?`<i class="d" style="width:${w(1)}%"></i><i class="f" style="width:${w(2)}%"></i>`:k==='design'?`<i class="d" style="width:${w(1)}%"></i><i class="p" style="width:${w(2)}%"></i><i class="f" style="width:${w(3)}%"></i>`:`<i class="p" style="width:${w(1)}%"></i><i class="d" style="width:${w(2)}%"></i>`;
     return `<div class="card"><div class="lab">${KN[k]} ${k==='design'?'완성':k==='staff'?'배정':'확보'}</div><b>${done}<small> / ${n}</small></b><div class="bar">${bar}</div>${k==='buy'||k==='rent'?`<div class="tot">예상 합계 <b>${won(rs.reduce((a,r)=>a+tot(r),0))}</b> · 가격 미입력 ${rs.filter(r=>!(+r.price>0)).length}건 · ${k==='rent'?`업체 ${rentV.length}곳 · 문서 ${rentRc.length+rentV.reduce((n,v)=>n+(v.rcpts||[]).length,0)}개`:`영수증 ${rs.filter(r=>(r.rcpts||[]).length).length}/${n}`}</div>`:''}</div>`};
@@ -345,7 +349,7 @@ function mapvBar(k){const cnt=m=>rows.filter(r=>r.kind===k&&stOk(r)).reduce((a,r
 const OPSAT=[858,159];
 const D=(x,y)=>[(x*1.12-417)*1.03851,(y*1.12-37)*1.03978];
 const CL={design:['--todo','--done','--prog','--fin'],rent:['--todo','--prog','--done'],buy:['--todo','--prog','--done'],staff:['--todo','--done','--fin']};
-const colOf=r=>(CL[r.kind]||CL.rent)[r.st||0];
+const colOf=r=>isProto(r)?'--fin':(CL[r.kind]||CL.rent)[r.st||0];
 const NS='http://www.w3.org/2000/svg';
 const mk=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
 const wOf=lab=>Math.max(40,[...lab].reduce((a,c)=>a+(/[가-힣]/.test(c)?19:/[×·]/.test(c)?12:11),0)+22);
@@ -465,7 +469,7 @@ function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<bu
   return `<div class="stf" role="group" aria-label="상태로 골라 보기">${b('','전체',bs.length)}${ST.buy.map((x,i)=>b(i,x,bs.filter(r=>(r.st||0)===i).length,CL.buy[i])).join('')}</div>`}
 function restoreFocus(fm){if(!fm)return;const t=document.querySelector(fm.q);if(t){t.value=fm.v;t.focus();try{t.setSelectionRange(fm.a,fm.b)}catch(e){}}}
 function render(){
-  const fa=document.activeElement,fk=fa&&fa.dataset&&['memo','vf','tdh','tdt','tdw'].find(k=>fa.dataset[k]!=null),fm=fk?{q:`[data-${fk}="${fa.dataset[fk]}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
+  const fa=document.activeElement,fk=fa&&fa.dataset&&['memo','vf','tdh','tdt','tdw','tel'].find(k=>fa.dataset[k]!=null),fm=fk?{q:`[data-${fk}="${fa.dataset[fk]}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   summary();const isVJ=kind==='vj',isTD=kind==='todo';$('#mapc').hidden=isVJ||isTD;$('#addbtn').hidden=isVJ||isTD||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   if(isTD){if(!$('#addf').hidden)closeForm();renderTodo();restoreFocus(fm);return}
   renderMap();
@@ -481,7 +485,7 @@ function render(){
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
     if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r),pim=pimHTML(r);
     const vv=r.kind==='rent'&&vOf(r.rv);
-    return `<div class="row${r.kind!=='staff'?' hs':''}${vv?' vrow':''}"${vv?` style="--vc:${vv.color}"`:''}><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='staff'?secHTML(r):''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+    return `<div class="row${r.kind!=='staff'?' hs':''}${vv?' vrow':''}"${vv?` style="--vc:${vv.color}"`:''}><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'&&!isProto(r)?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}${ED()?`<input class="tel" data-tel="${r.id}" value="${esc(r.tel||'')}" placeholder="연락처" inputmode="tel" aria-label="${esc(r.name)} 연락처">`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='staff'&&!isProto(r)?secHTML(r):''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div>${isProto(r)?`<span id="st-${r.id}" class="loc">도면에 자리만 표시</span>`:`<select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>`}${side}${proofs}</div>`}).join('')}</section>`).join('');
   restoreFocus(fm);secFill();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
@@ -495,6 +499,7 @@ $('#list').addEventListener('submit',async e=>{if(e.target.id!=='tdadd')return;e
   try{await db.doc('meta/'+id).set({kind:'todo',text:tx,who,done:false,how:'',o});$('#msg').textContent='할 일을 추가했어요.';setTimeout(()=>{const i=$('#td-text');if(i)i.focus()},50)}catch(err){failMsg(err,'추가')}});
 $('#list').addEventListener('change',async e=>{if(!db)return;
   const tc=e.target.closest('[data-tdck]');if(tc){const id=tc.dataset.tdck,dn=tc.checked;try{await db.doc('meta/'+id).update({done:dn,doneAt:dn?nowStamp():''});$('#msg').textContent=dn?'완료했어요. 아래 칸에 어떻게 완료했는지 적어 주세요.':'다시 할 일로 돌렸어요.';if(dn)setTimeout(()=>{const h=document.querySelector(`[data-tdh="${id}"]`);if(h)h.focus()},400)}catch(err){failMsg(err,'저장');render()}return}
+  const tl=e.target.closest('[data-tel]');if(tl){try{await db.doc('items/'+tl.dataset.tel).update({tel:tl.value.trim()});$('#msg').textContent='연락처를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
   for(const [a,f] of [['tdt','text'],['tdh','how'],['tdw','who']]){const el=e.target.closest(`[data-${a}]`);if(el){try{await db.doc('meta/'+el.dataset[a]).update({[f]:el.value.trim()});$('#msg').textContent='저장했어요.'}catch(err){failMsg(err,'저장')}return}}
   const vs=e.target.closest('[data-vsel]');if(vs){try{await db.doc('items/'+vs.dataset.vsel).update({rv:vs.value});$('#msg').textContent=vs.value?`${vName(vOf(vs.value))}로 정했어요.`:'대여 업체를 비웠어요.'}catch(err){failMsg(err,'저장');render()}return}
   const vf=e.target.closest('[data-vf]');if(vf){const [vid,k]=vf.dataset.vf.split(':'),v=vOf(vid);if(!v)return;v[k]=k==='total'?(+vf.value.replace(/[^\d]/g,'')||''):vf.value.trim();try{await saveRent({});$('#msg').textContent='업체 정보를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
@@ -580,6 +585,9 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
       if(assets){try{await assets.delete(aid)}catch(_){}}}catch(err){failMsg(err,'삭제')}
     return}
   const t=e.target.closest('[data-img]');if(t){$('#lbimg').src=BLOB(t.dataset.img);$('#lbcap').textContent=t.dataset.cap;$('#lb').hidden=false;$('#lbx').focus()}});
+$('#lbdl').addEventListener('click',async e=>{e.stopPropagation();const src=$('#lbimg').src;if(!src||$('#lb').classList.contains('sec'))return;
+  try{const b=await (await fetch(src)).blob(),ext=(b.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace('svg+xml','svg'),nm=($('#lbcap').textContent||'이미지').replace(/[\\/:*?"<>|]/g,'').trim().slice(0,60)||'이미지';
+    const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`${nm}.${ext}`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}catch(err){window.open(src,'_blank')}});
 const closeLb=()=>{$('#lb').hidden=true;if($('#lb').classList.contains('sec')){$('#lb').classList.remove('sec');$('#lbimg').removeAttribute('src')}};$('#lb').addEventListener('contextmenu',e=>{if($('#lb').classList.contains('sec'))e.preventDefault()});$('#lbx').addEventListener('click',closeLb);$('#lb').addEventListener('click',e=>{if(e.target.id==='lb')closeLb()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
 let pend=null;
 const FF=['cat','name','who','sex','qty','loc','note','code','link','vendor','vlink'];
@@ -642,7 +650,7 @@ async function buildPrint(mode){
     const rs=rows.filter(r=>r.kind===k);
     const head=k==='staff'?'<th>표시</th><th>맡은 일</th><th>담당</th><th>위치</th><th>할 일</th><th>상태</th><th>확인</th>':`<th>표시</th>${k==='design'?'<th>시안</th>':''}<th>구분</th><th>항목</th><th>수량</th><th>위치·메모</th>${k==='design'?'<th>인쇄 업체</th>':''}<th>상태</th><th>확인</th>`;
     const body=rs.map(r=>{const pl=(r.pins||[]).map(p=>p.l||autoLab(r)).join(', ')||(r.ops?'운영텐트 보관':'—');
-      return k==='staff'?`<tr><td class="c">${esc(r.code||'')}</td><td><b>${esc(r.name)}</b></td><td>${r.who?`<b>${esc(r.who)}</b>${r.sex?` (${esc(r.sex)})`:''}`:'<span class="m">미정</span>'}</td><td>${esc(r.loc||'')}</td><td class="s">${esc(r.note||'')}</td><td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`
+      return k==='staff'?`<tr><td class="c">${esc(r.code||'')}</td><td><b>${esc(r.name)}</b></td><td>${isProto(r)?'<span class="m">광운대 의전</span>':r.who?`<b>${esc(r.who)}</b>${r.sex?` (${esc(r.sex)})`:''}${ED()&&r.tel?`<br><span class="m">${esc(r.tel)}</span>`:''}`:'<span class="m">미정</span>'}</td><td>${esc(r.loc||'')}</td><td class="s">${esc(r.note||'')}</td><td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`
       :`<tr><td class="c">${esc(k==='design'?(r.code||pl):pl)}</td>${k==='design'?`<td class="th">${pic((r.imgs||[])[0],'tn')}</td>`:''}<td class="s">${esc(r.cat||'')}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.qty||'')}</td><td class="s">${esc([r.loc,r.note].filter(Boolean).join(' · '))}</td>${k==='design'?`<td class="s">${esc(r.vendor||'—')}</td>`:''}<td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`}).join('');
     return `<section><h1>${T[k]} <small>비전선포식 · 10/29(목) 광운스퀘어 · ${stamp} 기준</small></h1><div class="plan"><img class="pz" alt=""><svg viewBox="0 0 1672 941">${svg}</svg></div><div class="lg">${lg}</div></section>${pk?`<section><h1>${T[k]} · 지하주차장 <small>왼쪽 지하 2층 · 오른쪽 지하 3층 (대략 그림)</small></h1><div class="pk">${pk}</div><div class="lg">${lg}</div></section>`:''}${k==='design'?gallery():''}<section class="tb"><h2>${T[k]} 목록 <small>${rs.length}건</small></h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`}).join('');
   kind=keep;mapView=keepMV;render();
