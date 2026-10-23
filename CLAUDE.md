@@ -33,7 +33,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 - 대여·구매 결제: `pay`(계좌|카드), `tax`(발행|미발행, 계좌일 때만). 결제 완료 여부는 상태 `st` 에 합쳐져 있음 (예전 `paid` 필드는 안 씀)
 - 링크: 첫 번째는 `link`, 추가 링크는 `links` 배열 (`linksOf(r)` 로 합쳐서 씀)
 - 대표 이미지: `pimg` (대여·구매 행 왼쪽 썸네일). 링크에서 가져온 건 `files/p-<id>.jpg`
-- 자동 가져오기(구매): 행의 `가져오기` → 상품 페이지 열림(localStorage `grabFor`) → 즐겨찾기 버튼(북마클릿 `BMK`)이 JSON-LD/og:image/쿠팡 `.final-price-amount` 에서 사진·가격을 읽어 `페이지#fill=…` 로 엶 → `tryFill()` 이 `pimg`(외부 이미지 주소), `price` 저장. 쿠팡은 서버에서 못 읽어서(403) 이 방식을 씀
+- 자동 가져오기(구매): 행의 `가져오기` → (처음엔 `grabHelp` 안내 창, 한 번 성공하면 `bmkUsed`) → 상품 페이지 열림(localStorage `grabFor`) → 즐겨찾기 버튼(북마클릿 `BMK`)이 JSON-LD/og:image/쿠팡 `.final-price-amount` 에서 사진·가격을 읽어 `페이지#fill=…` 로 엶 → `tryFill()` 이 `pimg`(외부 이미지 주소), `price` 저장. 쿠팡은 서버에서 못 읽어서(403) 이 방식을 씀
 - 끌어다 놓기: 업로드 칸에 `data-dz`(p:상품이미지, d:시안, v:VJ화면) 또는 `data-rcz`(영수증)
 - 메모: `memo` (디자인·대여·구매 행 오른쪽 칸)
 - 구매: `rcpts` `[{id,name,type}]` 영수증 / 대여 영수증은 `meta` 의 `rent` 문서 `{rcpts:[…]}` 하나로 묶음

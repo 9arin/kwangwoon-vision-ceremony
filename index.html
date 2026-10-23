@@ -108,9 +108,14 @@ select:disabled{opacity:.85}
 .mv.fx{color:var(--accent)}
 .lnk a+a{margin-left:4px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.bmk{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--muted);display:grid;gap:6px}.bmk b{color:var(--ink)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
-.bmk .x{justify-self:start;font:inherit;font-size:12px;border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+
+.dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:55;padding:16px}
+.dlgc{background:var(--paper);color:var(--ink);border-radius:14px;padding:20px 22px;max-width:440px;width:100%;display:grid;gap:12px;font-size:15px;line-height:1.55}
+.dlgc h3{margin:0;font-size:17px}.dlgc p{margin:0}.dlgc small{color:var(--muted);font-size:13px}
+.dlgc .n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:11px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;margin-right:6px}
+.dlgc .acts{display:flex;gap:8px;justify-content:flex-end}.dlgc .acts button{font:inherit;font-size:14px;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.dlgc .acts .pri{background:var(--accent);border-color:var(--accent);color:#fff}
 .hp{display:flow-root}.pim{float:left;position:relative;width:72px;height:72px;margin:0 12px 6px 0;border-radius:8px}
 .pim .pup{width:72px;height:72px;padding:0;line-height:1.35;font-size:12px}.pim.none{border:1px dashed var(--line);background:var(--bg)}
 .pim.over,.proofs.over,.sbox.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft);border-radius:8px}.lned{display:grid;gap:4px;justify-items:start}.lni{font:inherit;font-size:13px;width:min(100%,360px);padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
@@ -239,11 +244,21 @@ name=name||(q('meta[property="og:title"]')&&q('meta[property="og:title"]').conte
 if(!img&&!price){alert('이 페이지에서 사진이나 가격을 찾지 못했어요.');return}
 window.open(P+'#fill='+encodeURIComponent(JSON.stringify({u:location.href,img:img,price:price,name:String(name).slice(0,80)})),'_blank');setTimeout(()=>window.close(),300)})()`;
 const BMK='javascript:'+encodeURIComponent(BMK_SRC.replace(/\n/g,''));
-const bmkHTML=()=>`<div class="bmk"><div><b>자동 가져오기</b> · 처음 한 번만: 아래 버튼을 크롬 <b>즐겨찾기 막대</b>로 끌어다 놓으세요. (막대가 안 보이면 Cmd+Shift+B)</div><div><a class="bmkl" href="${esc(BMK)}" data-bmk>⭐ 현황판에 담기</a></div><div>쓰는 법: 물품 옆 <b>가져오기</b> → 열린 상품 페이지에서 즐겨찾기의 <b>⭐ 현황판에 담기</b> → 사진과 가격이 들어가요.</div><button type="button" class="x" data-bmkhide>이 안내 숨기기</button></div>`;
-let bmkHidden=false;try{bmkHidden=localStorage.getItem('bmkHidden')==='1'}catch(e){}
+let bmkUsed=false;try{bmkUsed=localStorage.getItem('bmkUsed')==='1'}catch(e){}
 const toast=t=>{let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{el.hidden=true},6000)};
 const pkey=u=>{try{const x=new URL(u),m=x.pathname.match(/\/(?:vp|vm)\/products\/(\d+)/);return m?'cp:'+m[1]:x.host.replace(/^(www|m)\./,'')+x.pathname.replace(/\/$/,'')+(x.searchParams.get('id')?'?id='+x.searchParams.get('id'):'')}catch(e){return u}};
 let fill=null;try{if(location.hash.startsWith('#fill=')){fill=JSON.parse(decodeURIComponent(location.hash.slice(6)));history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
+// 처음 쓰는 사람용 안내 창: ⭐ 버튼을 즐겨찾기 줄에 놓고 → 상품 페이지에서 누르기
+function grabHelp(r){const d=document.createElement('div');d.className='dlg';
+  d.innerHTML=`<div class="dlgc" role="dialog" aria-modal="true" aria-label="사진과 가격 자동으로 넣기"><h3>사진과 가격 자동으로 넣기</h3>
+  <p><span class="n">1</span>처음 한 번만 해 주세요. 아래 빨간 버튼을 마우스로 꾹 잡고, <b>크롬 맨 위 즐겨찾기 줄</b>로 끌어 올려 놓으세요.<br><small>즐겨찾기 줄이 안 보이면 키보드에서 Cmd + Shift + B 를 누르세요.</small></p>
+  <p style="text-align:center"><a class="bmkl" href="${esc(BMK)}">⭐ 현황판에 담기</a></p>
+  <p><span class="n">2</span>아래 <b>상품 페이지 열기</b>를 누르세요.</p>
+  <p><span class="n">3</span>열린 상품 페이지에서, 즐겨찾기 줄의 <b>⭐ 현황판에 담기</b>를 누르세요. 사진과 가격이 자동으로 들어와요.</p>
+  <div class="acts"><button type="button" data-x>닫기</button><button type="button" class="pri" data-go>상품 페이지 열기</button></div></div>`;
+  document.body.appendChild(d);const close=()=>d.remove();
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))close();else if(e.target.closest('[data-go]')){window.open(linksOf(r)[0],'_blank');close()}else if(e.target.closest('.bmkl')){e.preventDefault();toast('누르지 말고, 크롬 맨 위 즐겨찾기 줄로 끌어다 놓아 주세요.')}});
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')close()});d.querySelector('[data-go]').focus()}
 async function tryFill(){if(!fill||!rows.length||canW===null)return;const f=fill;fill=null;
   if(!canW){toast('편집 비밀번호로 들어온 뒤 다시 눌러 주세요.');return}
   let g=null;try{g=JSON.parse(localStorage.getItem('grabFor')||'null')}catch(e){}
@@ -251,7 +266,7 @@ async function tryFill(){if(!fill||!rows.length||canW===null)return;const f=fill
   if(!r&&g&&Date.now()-g.t<36e5)r=rows.find(x=>x.id===g.id);
   if(!r){toast('어느 물품인지 찾지 못했어요. 현황판에서 물품 옆 ‘가져오기’를 먼저 눌러 주세요.');return}
   const patch={};if(f.img&&/^https?:\/\//.test(f.img))patch.pimg=f.img;if(+f.price>0)patch.price=Math.round(+f.price);
-  try{await db.doc('items/'+r.id).update(patch);try{localStorage.removeItem('grabFor')}catch(e){}
+  try{await db.doc('items/'+r.id).update(patch);try{localStorage.removeItem('grabFor');localStorage.setItem('bmkUsed','1')}catch(e){}
     setTab('buy');render();const got=[patch.pimg?'사진':'',patch.price?'가격 '+won(patch.price):''].filter(Boolean).join('과 ');
     toast(`${r.name}: ${got}을 넣었어요. 이 탭은 곧 닫혀요.`);setTimeout(()=>{try{window.close()}catch(e){}},3000)}
   catch(err){toast('넣지 못했어요. 편집 비밀번호로 들어왔는지 확인해 주세요.')}}
@@ -324,7 +339,7 @@ function render(){
   if(!rows.length){$('#list').innerHTML='<div class="grp"><div class="empty">아직 등록된 항목이 없어요. Claude에게 목록을 채워 달라고 하면 여기에 나타나요.</div></div>';return}
   if(!rs.length){$('#list').innerHTML='<div class="grp"><div class="empty">이 보기에서는 모두 끝났어요.</div></div>';return}
   const groups=[];rs.forEach(r=>{const key=(kind==='all'?KN[r.kind]+' · ':'')+r.cat;let g=groups.find(x=>x.k===key);if(!g)groups.push(g={k:key,rs:[]});g.rs.push(r)});
-  $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+(kind==='buy'&&ED()&&!bmkHidden?bmkHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
+  $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
@@ -369,9 +384,7 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
     box.innerHTML=`<div class="lned">${(L.length?L:['']).map(lnInp).join('')}<div><button type="button" class="mv" data-lnadd>+ 링크 추가</button> <button type="button" class="mv" data-lnsave="${r.id}">저장</button></div></div>`;box.querySelector('input').focus();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
-    window.open(linksOf(r)[0],'_blank');toast('열린 상품 페이지에서 즐겨찾기의 ‘⭐ 현황판에 담기’를 눌러 주세요.');return}
-  if(e.target.closest('[data-bmk]')){e.preventDefault();toast('이 버튼은 누르지 말고 크롬 즐겨찾기 막대로 끌어다 놓아 주세요.');return}
-  if(e.target.closest('[data-bmkhide]')){bmkHidden=true;try{localStorage.setItem('bmkHidden','1')}catch(_){}render();return}
+    if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
   const la=e.target.closest('[data-lnadd]');if(la){la.parentElement.insertAdjacentHTML('beforebegin',lnInp(''));la.parentElement.previousElementSibling.focus();return}
   const ls=e.target.closest('[data-lnsave]');if(ls){const L=[...ls.closest('.lned').querySelectorAll('.lni')].map(i=>i.value.trim()).filter(Boolean);
     if(L.some(v=>!/^https?:\/\//.test(v))){$('#msg').textContent='링크는 https:// 로 시작해야 해요.';return}
