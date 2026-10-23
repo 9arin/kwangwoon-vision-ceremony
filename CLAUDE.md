@@ -46,6 +46,8 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 할 일(탭 `todo`): `meta` 테이블의 `t-…` 문서 `{kind:'todo',text,who(담당),done,doneAt,how(완료 메모),o}`. 작성자 표시는 안 함(사용자 요청). 인쇄에 안 넣음. 완료 메모는 할 일 바로 아래 초록 기울임 글씨
 
 `vj.data`: `no,s,e,item,desc,cast,mat,music,pa,ledL,ledC,ledR,live,rem`, `scr:[{l,img,link}]`
+- VJ 큐 순서: 편집 모드에서 손잡이(⠿) 끌기 또는 ▲▼ → `vjReorder` 가 `o` 를 1,2,3… 으로 다시 매김. 큐 번호(`no`)·시간은 안 바꿈
+- 버튼 속성 이름 주의: VJ 가 `data-vadd/vdel/vf` 를 쓰므로 대여 업체는 `data-vnadd/vndel/vnf`
 
 권한: 읽기는 누구나, 쓰기는 `editors` 테이블에 있는 이메일로 로그인한 사람만 (RLS + `is_editor()`).
 로그인은 메일 링크가 아니라 공용 편집 계정(`EDIT_EMAIL`, config.js) + 편집 비밀번호 방식입니다. 화면에는 비밀번호 칸만 있어요.
