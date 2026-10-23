@@ -107,6 +107,8 @@ select:disabled{opacity:.85}
 .prc{font-size:13px;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}.prc .wl{font-size:11.5px;color:var(--muted)}.prc b{font-variant-numeric:tabular-nums}.prc .pn{color:var(--muted);font-size:12px}
 .mv.fx{color:var(--accent)}
 .lnk a+a{margin-left:4px}
+.stf{display:flex;gap:6px;flex-wrap:wrap}.stf button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.stf button i{width:9px;height:9px;border-radius:50%;display:inline-block}.stf button b{font-weight:500;color:var(--muted)}.stf button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}.stf button[aria-pressed="true"] b{color:inherit}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -230,7 +232,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
 <script>
 const ST={design:['미착수','디자인 완료','출력 발주','설치 완료'],rent:['미발주','결제 완료','입고 완료'],buy:['미구매','결제 완료','입고 완료'],staff:['미배정','배정 완료','당일 확인']};
 const KN={design:'디자인',rent:'대여',buy:'구매',staff:'인력'};
-let rows=[],kind='design',openOnly=false,db=null,assets=null;
+let rows=[],kind='design',openOnly=false,stF=null,db=null,assets=null;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // 링크: 첫 번째는 link, 나머지는 links 배열
@@ -339,7 +341,7 @@ function renderMap(){
   const k=kind==='all'?'design':kind,ed=pend&&pend.edit?pend.id:null;
   if(k!=='design'){const [X,Y]=ANCH.recep;mk('text',{x:X,y:Y-32,'text-anchor':'middle',style:'font:700 17px var(--sans);fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px'},svg).textContent='리셉션 (건물 내부)'}
   const ops=[],L=[],add=(X,Y,lab,col,aria,go,dot)=>L.push({X,Y,lab,col,aria,go,dot});
-  rows.filter(r=>r.kind===k).forEach(r=>{if(r.ops)ops.push(r);if(r.id===ed)return;
+  rows.filter(r=>r.kind===k&&stOk(r)).forEach(r=>{if(r.ops)ops.push(r);if(r.id===ed)return;
     const has=r.kind==='design'&&(r.imgs||[]).length;
     (r.pins||[]).forEach(p=>{const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
       add(p.x,p.y,lab,colOf(r),`${lab} ${r.name}${r.kind==='staff'?' 담당 '+(r.who||'미정'):''} ${r.loc||''} ${ST[r.kind][r.st||0]}`,()=>{if(has)openImg(r);else goRow(r)},has)})});
@@ -349,16 +351,21 @@ function renderMap(){
     pend.pins.forEach((p,i)=>add(p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
   layoutPills(svg,L);
 }
+// 구매 탭: 상태별로 골라 보기 (전체 / 미구매 / 결제 완료 / 입고 완료)
+const stOk=r=>r.kind!=='buy'||stF===null||(r.st||0)===stF;
+function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<button type="button" data-stf="${v}" aria-pressed="${String(v)===String(stF??'')}">${col?`<i style="background:var(${col})"></i>`:''}${lab} <b>${n}</b></button>`;
+  return `<div class="stf" role="group" aria-label="상태로 골라 보기">${b('','전체',bs.length)}${ST.buy.map((x,i)=>b(i,x,bs.filter(r=>(r.st||0)===i).length,CL.buy[i])).join('')}</div>`}
 function render(){
   const fa=document.activeElement,fm=fa&&fa.dataset&&fa.dataset.memo?{id:fa.dataset.memo,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   summary();const isVJ=kind==='vj';$('#mapc').hidden=isVJ;$('#addbtn').hidden=isVJ||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   renderMap();
   let rs=rows.filter(r=>kind==='all'||r.kind===kind);
   if(openOnly) rs=rs.filter(r=>!doneOf(r));
+  rs=rs.filter(stOk);const stf=kind==='buy'?stfHTML():'';
   if(!rows.length){$('#list').innerHTML='<div class="grp"><div class="empty">아직 등록된 항목이 없어요. Claude에게 목록을 채워 달라고 하면 여기에 나타나요.</div></div>';return}
-  if(!rs.length){$('#list').innerHTML='<div class="grp"><div class="empty">이 보기에서는 모두 끝났어요.</div></div>';return}
+  if(!rs.length){$('#list').innerHTML=stf+`<div class="grp"><div class="empty">${stF!==null&&kind==='buy'?`‘${ST.buy[stF]}’인 물품이 없어요.`:'이 보기에서는 모두 끝났어요.'}</div></div>`;return}
   const groups=[];rs.forEach(r=>{const key=(kind==='all'?KN[r.kind]+' · ':'')+r.cat;let g=groups.find(x=>x.k===key);if(!g)groups.push(g={k:key,rs:[]});g.rs.push(r)});
-  $('#list').innerHTML=(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
+  $('#list').innerHTML=stf+(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
@@ -402,6 +409,7 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     try{await db.doc('items/'+rm.dataset.rm).delete();$('#msg').textContent='항목을 삭제했어요.'}catch(err){failMsg(err,'삭제')}return}
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
     box.innerHTML=`<div class="lned">${(L.length?L:['']).map(lnInp).join('')}<div><button type="button" class="mv" data-lnadd>+ 링크 추가</button> <button type="button" class="mv" data-lnsave="${r.id}">저장</button></div></div>`;box.querySelector('input').focus();return}
+  const sf=e.target.closest('[data-stf]');if(sf){stF=sf.dataset.stf===''?null:+sf.dataset.stf;render();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
     if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
   const la=e.target.closest('[data-lnadd]');if(la){la.parentElement.insertAdjacentHTML('beforebegin',lnInp(''));la.parentElement.previousElementSibling.focus();return}
