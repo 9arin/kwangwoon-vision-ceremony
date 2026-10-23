@@ -37,6 +37,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 - 끌어다 놓기: 업로드 칸에 `data-dz`(p:상품이미지, d:시안, v:VJ화면) 또는 `data-rcz`(영수증)
 - 메모: `memo` (디자인·대여·구매 행 오른쪽 칸)
 - 구매: `rcpts` `[{id,name,type}]` 영수증 / 대여 영수증은 `meta` 의 `rent` 문서 `{rcpts:[…]}` 하나로 묶음
+- 대여 업체: `meta/rent.vendors` `[{id,color,name,total,bank,acct,holder,tel,bizno,rcpts}]`, 대여 물품의 `rv` = 업체 id (행 왼쪽 색 막대, 오른쪽 '대여 업체 고르기'). 업체 칸에 견적서를 올리면 `vendorRead` → `docText`(pdf.js + 한글 cMaps, 한글이 없으면 Tesseract 글자 인식) → `parseQuote` 가 빈 칸만 채움. '문서에서 다시 읽기'는 덮어씀. 금액은 문서 안 가장 큰 금액, 업체명은 상호/주식회사/(주) → 없으면 파일 이름
 
 `vj.data`: `no,s,e,item,desc,cast,mat,music,pa,ledL,ledC,ledR,live,rem`, `scr:[{l,img,link}]`
 

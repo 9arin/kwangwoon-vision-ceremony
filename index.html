@@ -111,6 +111,15 @@ select:disabled{opacity:.85}
 .stf button i{width:9px;height:9px;border-radius:50%;display:inline-block}.stf button b{font-weight:500;color:var(--muted)}.stf button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}.stf button[aria-pressed="true"] b{color:inherit}
 .mapv{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}.mapv button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}.mapv button b{font-weight:500;color:var(--muted);margin-left:4px}.mapv button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}.mapv button[aria-pressed="true"] b{color:inherit}
 .pe small{color:var(--muted);font-size:11.5px;margin-left:2px}
+.vwrap{padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.vcard{border:1px solid var(--line);border-left:8px solid var(--vc);border-radius:10px;padding:12px 14px;display:grid;gap:6px;background:var(--paper);align-content:start}
+.vh{display:flex;gap:8px;align-items:center}.vn{font-weight:700;color:var(--vc)}.vh .mv:first-of-type{margin-left:auto}
+.vf{display:grid;grid-template-columns:70px minmax(0,1fr);gap:6px;align-items:center;font-size:13px}.vf>span{color:var(--muted);font-size:12px}.vf b{font-weight:600;overflow-wrap:anywhere}
+.vf input{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+.vits{font-size:12.5px;color:var(--muted)}.vadd{font:inherit;border:1px dashed var(--muted);border-radius:10px;background:none;color:var(--muted);cursor:pointer;min-height:90px}
+.vread{font-size:12.5px;color:var(--accent)}.vchip{font-size:12px;padding:1px 10px;border-radius:999px;color:#fff;background:var(--vc);font-weight:600}
+.row.vrow{box-shadow:inset 7px 0 0 var(--vc)}.pay select[data-vsel]:not([data-v=""]){border-left-color:var(--vc)}
+.vpl{max-height:55vh;overflow:auto;display:grid;gap:2px;border:1px solid var(--line);border-radius:8px;padding:6px}.vpl label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;font-size:14px;cursor:pointer}.vpl label:hover{background:var(--bg)}.vpl small{color:var(--muted);margin-left:auto;font-size:12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -286,6 +295,7 @@ function pimHTML(r){if(r.kind!=='buy'&&r.kind!=='rent')return '';const ed=assets
 // 오른쪽 칸: 대여·구매는 결제 방식/세금계산서, 물품(디자인·대여·구매)은 메모
 function sideHTML(r){
   if(r.kind==='staff')return '';const ed=ED();let h='';
+  if(r.kind==='rent'&&(ED()||vOf(r.rv))){const v=vOf(r.rv);h+=ED()?`<div class="pay"><select class="ps" data-vsel="${r.id}" data-v="${esc(r.rv&&v?r.rv:'')}"${v?` style="--vc:${v.color}"`:''} aria-label="${esc(r.name)} 대여 업체"><option value="">대여 업체 고르기</option>${rentV.map(x=>`<option value="${x.id}"${x===v?' selected':''}>● ${esc(vName(x))}</option>`).join('')}</select></div>`:`<div class="pay ro"><span class="vchip" style="--vc:${v.color}">${esc(vName(v))}</span></div>`}
   if(r.kind==='buy'||r.kind==='rent'){
     const sel=(f,val,opts,lab)=>`<select class="ps" data-pf="${f}" data-rid="${r.id}" data-v="${esc(val)}" aria-label="${esc(r.name)} ${lab}"><option value="">${lab}</option>${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
     if(ed)h+=`<div class="pay">${sel('pay',r.pay||'',['계좌','카드'],'결제 방식')}${r.pay==='계좌'?sel('tax',r.tax||'',['발행','미발행'],'세금계산서'):''}</div>`;
@@ -303,7 +313,7 @@ function summary(){
   const card=(k)=>{const rs=rows.filter(r=>r.kind===k),n=rs.length;const c=[0,0,0,0];rs.forEach(r=>c[r.st||0]++);
     const done=rs.filter(doneOf).length;const w=i=>n?c[i]/n*100:0;
     const bar=k==='staff'?`<i class="d" style="width:${w(1)}%"></i><i class="f" style="width:${w(2)}%"></i>`:k==='design'?`<i class="d" style="width:${w(1)}%"></i><i class="p" style="width:${w(2)}%"></i><i class="f" style="width:${w(3)}%"></i>`:`<i class="p" style="width:${w(1)}%"></i><i class="d" style="width:${w(2)}%"></i>`;
-    return `<div class="card"><div class="lab">${KN[k]} ${k==='design'?'완성':k==='staff'?'배정':'확보'}</div><b>${done}<small> / ${n}</small></b><div class="bar">${bar}</div>${k==='buy'||k==='rent'?`<div class="tot">예상 합계 <b>${won(rs.reduce((a,r)=>a+tot(r),0))}</b> · 가격 미입력 ${rs.filter(r=>!(+r.price>0)).length}건 · ${k==='rent'?`영수증 ${rentRc.length}개`:`영수증 ${rs.filter(r=>(r.rcpts||[]).length).length}/${n}`}</div>`:''}</div>`};
+    return `<div class="card"><div class="lab">${KN[k]} ${k==='design'?'완성':k==='staff'?'배정':'확보'}</div><b>${done}<small> / ${n}</small></b><div class="bar">${bar}</div>${k==='buy'||k==='rent'?`<div class="tot">예상 합계 <b>${won(rs.reduce((a,r)=>a+tot(r),0))}</b> · 가격 미입력 ${rs.filter(r=>!(+r.price>0)).length}건 · ${k==='rent'?`업체 ${rentV.length}곳 · 문서 ${rentRc.length+rentV.reduce((n,v)=>n+(v.rcpts||[]).length,0)}개`:`영수증 ${rs.filter(r=>(r.rcpts||[]).length).length}/${n}`}</div>`:''}</div>`};
   $('#sum').innerHTML=card('staff')+card('design')+card('rent')+card('buy')+(vj.length?vjCard():'');
 }
 const ANCH={recep:[1533,491]};
@@ -365,7 +375,7 @@ const stOk=r=>r.kind!=='buy'||stF===null||(r.st||0)===stF;
 function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<button type="button" data-stf="${v}" aria-pressed="${String(v)===String(stF??'')}">${col?`<i style="background:var(${col})"></i>`:''}${lab} <b>${n}</b></button>`;
   return `<div class="stf" role="group" aria-label="상태로 골라 보기">${b('','전체',bs.length)}${ST.buy.map((x,i)=>b(i,x,bs.filter(r=>(r.st||0)===i).length,CL.buy[i])).join('')}</div>`}
 function render(){
-  const fa=document.activeElement,fm=fa&&fa.dataset&&fa.dataset.memo?{id:fa.dataset.memo,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
+  const fa=document.activeElement,fm=fa&&fa.dataset&&(fa.dataset.memo||fa.dataset.vf)?{q:fa.dataset.memo?`[data-memo="${fa.dataset.memo}"]`:`[data-vf="${fa.dataset.vf}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   summary();const isVJ=kind==='vj';$('#mapc').hidden=isVJ;$('#addbtn').hidden=isVJ||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   renderMap();
   let rs=rows.filter(r=>kind==='all'||r.kind===kind);
@@ -374,13 +384,14 @@ function render(){
   if(!rows.length){$('#list').innerHTML='<div class="grp"><div class="empty">아직 등록된 항목이 없어요. Claude에게 목록을 채워 달라고 하면 여기에 나타나요.</div></div>';return}
   if(!rs.length){$('#list').innerHTML=stf+`<div class="grp"><div class="empty">${stF!==null&&kind==='buy'?`‘${ST.buy[stF]}’인 물품이 없어요.`:'이 보기에서는 모두 끝났어요.'}</div></div>`;return}
   const groups=[];rs.forEach(r=>{const key=(kind==='all'?KN[r.kind]+' · ':'')+r.cat;let g=groups.find(x=>x.k===key);if(!g)groups.push(g={k:key,rs:[]});g.rs.push(r)});
-  $('#list').innerHTML=stf+(kind==='rent'?rentRcHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
+  $('#list').innerHTML=stf+(kind==='rent'?vendorsHTML():'')+groups.map(g=>`<section class="grp"><h2>${esc(g.k)}<span>${g.rs.filter(doneOf).length}/${g.rs.length}</span></h2>${g.rs.map(r=>{
     const opts=ST[r.kind].map((s,i)=>`<option value="${i}"${(r.st||0)===i?' selected':''}>${s}</option>`).join('');
     const imgs=(r.imgs||[]).map((id,i)=>`<span class="tw"><button type="button" class="th" data-img="${esc(id)}" data-cap="${esc(r.name+(r.loc?' · '+r.loc:''))}" aria-label="${esc(r.name)} 시안 ${i+1} 크게 보기"><img src="${esc(BLOB(id))}" alt="" loading="lazy"></button>${ED()?`<button type="button" class="del" data-del="${r.id}" data-aid="${esc(id)}" aria-label="${esc(r.name)} 시안 ${i+1} 삭제">×</button>`:''}</span>`).join('');
     const proofs=r.kind==='design'?`<div class="proofs"${assets&&ED()?` data-dz="d:${r.id}"`:''}>${imgs}${assets&&ED()?`<button type="button" class="up" data-up="${r.id}">시안 올리기</button>`:''}</div>`:'';
     if(ie&&ie.id===r.id)return ieHTML(r);const side=sideHTML(r),pim=pimHTML(r);
-    return `<div class="row${r.kind!=='staff'?' hs':''}"><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
-  if(fm){const t=document.querySelector(`[data-memo="${fm.id}"]`);if(t){t.value=fm.v;t.focus();t.setSelectionRange(fm.a,fm.b)}}
+    const vv=r.kind==='rent'&&vOf(r.rv);
+    return `<div class="row${r.kind!=='staff'?' hs':''}${vv?' vrow':''}"${vv?` style="--vc:${vv.color}"`:''}><div${pim?' class="hp"':''}>${pim}<div class="nm">${r.code?`<span class="k">${esc(r.code)}</span>`:''}${esc(r.name)}${ED()?` <button type="button" class="mv" data-ed="${r.id}">수정</button><button type="button" class="rm" data-rm="${r.id}">삭제</button>`:''}</div>${r.kind==='staff'?`<div class="who"><span class="wl">담당</span>${r.who?`<b>${esc(r.who)}</b>`:'<i class="none">미정</i>'}${ED()?sexSel(r.sex,`data-sx="${r.id}" aria-label="${esc(r.name)} 성별"`):r.sex?` <span class="wl">${esc(r.sex)}</span>`:''}${ED()?`<button type="button" class="mv" data-wh="${r.id}">${r.who?'이름 변경':'이름 넣기'}</button>`:''}</div>`:''}${r.loc?`<div class="loc">${esc(r.loc)}</div>`:''}${r.note?`<div class="note">${esc(r.note)}</div>`:''}${r.kind==='design'?`<div class="lnk vd"><span class="wl">인쇄 업체</span> ${r.vendor?`<b>${esc(r.vendor)}</b>`:'<span class="loc">미정</span>'}${r.vlink&&/^https?:\/\//.test(r.vlink)?` <a href="${esc(r.vlink)}" target="_blank" rel="noopener">업체 링크 ↗</a>`:''}${ED()?` <button type="button" class="mv" data-vd="${r.id}">${r.vendor||r.vlink?'업체 수정':'업체 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||r.kind==='rent'?`<div class="prc"><span class="wl">가격</span>${+r.price>0?`${won(+r.price)}${r.pn?` <span class="pn">(${esc(r.pn)})</span>`:''} × ${+r.pq||1}${shipTxt(r)?' '+shipTxt(r):''} = <b>${won(tot(r))}</b>`:'<span class="pn">미입력</span>'}${ED()?` <button type="button" class="mv" data-pr="${r.id}">${+r.price>0?'가격 수정':'가격 넣기'}</button>`:''}</div>`:''}${r.kind==='buy'||(linksOf(r).length&&r.kind!=='design')?`<div class="lnk">${linksOf(r).length?linksOf(r).map((u,i)=>/^https?:\/\//.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${i?`링크 ${i+1} · ${esc(hostOf(u))}`:'구매 링크'} ↗</a>`:'').join(' '):'<span class="loc">링크 없음</span>'}${ED()?` <button type="button" class="mv" data-ln="${r.id}">${linksOf(r).length?'링크 수정':'링크 넣기'}</button>`:''}${ED()&&r.kind==='buy'&&linksOf(r).length?` <button type="button" class="mv fx" data-grab="${r.id}">가져오기</button>`:''}${ED()&&mcp&&r.kind==='buy'&&r.link?` <button type="button" class="mv fx" data-fetch="${r.id}">가격 가져오기</button>`:''}</div>`:''}${r.kind==='buy'?rcHTML(r):''}</div><div class="qty">${r.kind==='staff'?'':esc(r.qty)}</div><select id="st-${r.id}" data-id="${r.id}" data-s="${r.st||0}" aria-label="${esc(r.name)} 상태"${ED()?'':' disabled'}>${opts}</select>${side}${proofs}</div>`}).join('')}</section>`).join('');
+  if(fm){const t=document.querySelector(fm.q);if(t){t.value=fm.v;t.focus();t.setSelectionRange(fm.a,fm.b)}}
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{kind=b.dataset.k;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));try{localStorage.setItem('tab',kind)}catch(e){}render()}));
 try{const t=localStorage.getItem('tab');if(t){kind=t;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.k===t))}}catch(e){}
@@ -389,6 +400,8 @@ $('#list').addEventListener('change',async e=>{const s=e.target.closest('select[
   const me=rows.find(x=>x.id===s.dataset.id),grp=me&&me.grp?rows.filter(x=>x.grp===me.grp):[me];
   try{for(const x of grp)await db.doc('items/'+x.id).update({st:v});$('#msg').textContent=grp.length>1?`같은 디자인 ${grp.length}곳을 함께 저장했어요.`:'저장했어요.'}catch(err){failMsg(err,'저장');render()}});
 $('#list').addEventListener('change',async e=>{if(!db)return;
+  const vs=e.target.closest('[data-vsel]');if(vs){try{await db.doc('items/'+vs.dataset.vsel).update({rv:vs.value});$('#msg').textContent=vs.value?`${vName(vOf(vs.value))}로 정했어요.`:'대여 업체를 비웠어요.'}catch(err){failMsg(err,'저장');render()}return}
+  const vf=e.target.closest('[data-vf]');if(vf){const [vid,k]=vf.dataset.vf.split(':'),v=vOf(vid);if(!v)return;v[k]=k==='total'?(+vf.value.replace(/[^\d]/g,'')||''):vf.value.trim();try{await saveRent({});$('#msg').textContent='업체 정보를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
   const p=e.target.closest('select.ps');if(p){const v=p.value;p.dataset.v=v;
     try{await db.doc('items/'+p.dataset.rid).update({[p.dataset.pf]:v});$('#msg').textContent='저장했어요.'}catch(err){failMsg(err,'저장');render()}return}
   const m=e.target.closest('[data-memo]');if(m){const id=m.dataset.memo,v=m.value.trim();
@@ -418,6 +431,12 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     try{await db.doc('items/'+rm.dataset.rm).delete();$('#msg').textContent='항목을 삭제했어요.'}catch(err){failMsg(err,'삭제')}return}
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
     box.innerHTML=`<div class="lned">${(L.length?L:['']).map(lnInp).join('')}<div><button type="button" class="mv" data-lnadd>+ 링크 추가</button> <button type="button" class="mv" data-lnsave="${r.id}">저장</button></div></div>`;box.querySelector('input').focus();return}
+  if(e.target.closest('[data-vadd]')){const used=rentV.map(v=>v.color),color=VCOL.find(c=>!used.includes(c))||VCOL[rentV.length%VCOL.length];
+    rentV=[...rentV,{id:'v'+Date.now().toString(36),color,name:'',rcpts:[]}];try{await saveRent({});$('#msg').textContent=`${rentV.length}번 업체를 만들었어요. 견적서를 올리거나 정보를 넣어 주세요.`}catch(err){failMsg(err,'저장')}return}
+  const vpk=e.target.closest('[data-vpick]');if(vpk){vendorPick(vpk.dataset.vpick);return}
+  const vrd=e.target.closest('[data-vread]');if(vrd){const v=vOf(vrd.dataset.vread);if(v)vendorRead(v.id,v.rcpts||[],true);return}
+  const vdl=e.target.closest('[data-vdel]');if(vdl){if(!vdl.dataset.arm){vdl.dataset.arm='1';vdl.textContent='정말 삭제';vdl.classList.add('arm');setTimeout(()=>{if(vdl.isConnected){delete vdl.dataset.arm;vdl.textContent='삭제';vdl.classList.remove('arm')}},3000);return}
+    const id=vdl.dataset.vdel;rentV=rentV.filter(v=>v.id!==id);try{await saveRent({});for(const r of rows.filter(x=>x.rv===id))await db.doc('items/'+r.id).update({rv:''});$('#msg').textContent='업체를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
   const sf=e.target.closest('[data-stf]');if(sf){stF=sf.dataset.stf===''?null:+sf.dataset.stf;render();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
     if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
@@ -712,24 +731,80 @@ $('#list').addEventListener('change',async e=>{const s=e.target.closest('select[
   try{await db.doc('items/'+s.dataset.sx).update({sex:s.value});$('#msg').textContent=s.value?`성별을 ${s.value}(으)로 저장했어요.`:'성별을 비웠어요.'}catch(err){failMsg(err,'저장')}});
 // ── 영수증 (구매·대여) ──
 const isPdf=x=>/pdf/i.test(x.type||'')||/\.pdf$/i.test(x.name||'');
-let rentRc=[];
+let rentRc=[],rentV=[];
+// 대여 업체: meta/rent.vendors = [{id,color,name,total,bank,acct,holder,tel,bizno,rcpts}], 대여 물품의 rv = 업체 id
+const VCOL=['#3b7ddd','#e8590c','#2f9e44','#ae3ec9','#c99a00','#0c9488','#d6336c','#5c7cfa'];
+const vOf=id=>rentV.find(v=>v.id===id),vNo=v=>rentV.indexOf(v)+1,vName=v=>v.name||`${vNo(v)}번 업체`;
+const saveRent=patch=>db.doc('meta/rent').set({rcpts:rentRc,vendors:rentV,...patch});
+const rcGet=id=>id==='RENT'?{id,name:'대여',rcpts:rentRc}:id.startsWith('V-')?(v=>v&&{id,name:vName(v),rcpts:v.rcpts||[],v})(vOf(id.slice(2))):rows.find(x=>x.id===id);
+async function rcSave(id,L){if(id==='RENT'){rentRc=L;return saveRent({rcpts:L})}if(id.startsWith('V-')){const v=vOf(id.slice(2));v.rcpts=L;return saveRent({})}return db.doc('items/'+id).update({rcpts:L})}
+function vendorsHTML(){const ed=ED();
+  const cards=rentV.map(v=>{const its=rows.filter(r=>r.kind==='rent'&&r.rv===v.id),sum=its.reduce((a,r)=>a+tot(r),0);
+    const f=(k,lab,ph)=>ed?`<label class="vf"><span>${lab}</span><input data-vf="${v.id}:${k}" value="${esc(k==='total'&&+v[k]?(+v[k]).toLocaleString('ko-KR'):v[k]||'')}" placeholder="${ph}"${k==='total'?' inputmode="numeric"':''}></label>`:(v[k]?`<div class="vf"><span>${lab}</span><b>${esc(k==='total'?won(+v[k]):v[k])}</b></div>`:'');
+    return `<div class="vcard" style="--vc:${v.color}"><div class="vh"><span class="vn">${vNo(v)}번 업체</span>${ed?`<button type="button" class="mv" data-vpick="${v.id}">물품 고르기</button><button type="button" class="rm" data-vdel="${v.id}">삭제</button>`:''}</div>
+      ${f('name','업체명','예: 아커스 컴퍼니')}${f('total','총 금액','숫자만')}${f('bank','은행','예: 농협은행')}${f('acct','계좌번호','000-0000-0000')}${f('holder','예금주','')}${f('tel','연락처','')}${f('bizno','사업자번호','000-00-00000')}
+      <div class="vits">맡긴 물품 <b>${its.length}개</b>${its.length?` · ${its.map(r=>esc(r.name)).join(', ')}`:''}${sum?` · 물품 합계 ${won(sum)}`:''}</div>
+      ${rcHTML({id:'V-'+v.id,name:vName(v),rcpts:v.rcpts||[]}).replace('<span class="wl">영수증</span>','<span class="wl">견적서·영수증</span>')}
+      ${ed&&(v.rcpts||[]).length?`<div><button type="button" class="mv" data-vread="${v.id}">문서에서 다시 읽기</button> <span class="vread" id="vread-${v.id}"></span></div>`:`<span class="vread" id="vread-${v.id}"></span>`}</div>`}).join('');
+  return `<section class="grp rcgrp"><h2>대여 업체 · 견적서 <span>${rentV.length}곳</span></h2><div class="vwrap">${cards||(ed?'':'<div class="pn">아직 업체가 없어요.</div>')}${ed?'<button type="button" class="vadd" data-vadd>+ 업체 추가</button>':''}</div>${rentRc.length?`<div class="rcwrap">${rcHTML({id:'RENT',name:'대여',rcpts:rentRc})}</div>`:''}${ed?'<div class="pn" style="padding:0 16px 12px">업체 칸에 견적서·영수증을 올리면 업체명·총 금액·계좌를 자동으로 읽어 빈 칸에 넣어요. 맞는지 꼭 확인해 주세요.</div>':''}</section>`}
+// ── 견적서 읽기: PDF 글자(pdf.js) → 없으면 글자 인식(Tesseract, 한국어) → 업체명·총 금액·계좌 등 찾기
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',TESS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+async function ocr(img,note){await loadJS(TESS);note&&note('글자를 알아보는 중이에요… (처음엔 30초쯤 걸려요)');const r=await Tesseract.recognize(img,'kor+eng');return r.data.text||''}
+async function docText(blob,name,note){const pdf=/pdf/i.test(blob.type||'')||/\.pdf$/i.test(name||'');
+  if(!pdf)return ocr(blob,note);
+  await loadJS(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS.replace('pdf.min.js','pdf.worker.min.js');
+  const doc=await pdfjsLib.getDocument({data:await blob.arrayBuffer(),cMapUrl:PDFJS.replace('pdf.min.js','cmaps/'),cMapPacked:true}).promise;let t='';
+  for(let i=1;i<=Math.min(doc.numPages,3);i++){const c=await (await doc.getPage(i)).getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n'}
+  if(t.replace(/\s/g,'').length>40&&(t.match(/[가-힣]/g)||[]).length>=5)return t;
+  const pg=await doc.getPage(1),vp=pg.getViewport({scale:2}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+  await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;return t+' \n'+await ocr(cv,note)}
+const BANKS='KB국민은행|국민은행|NH농협은행|농협은행|농협|신한은행|우리은행|KEB하나은행|하나은행|IBK기업은행|기업은행|카카오뱅크|토스뱅크|케이뱅크|SC제일은행|씨티은행|새마을금고|우체국|수협|신협|산업은행|부산은행|대구은행|iM뱅크|경남은행|광주은행|전북은행|제주은행|국민|신한|우리|하나|기업|카카오';
+function parseQuote(text,fname){const t=String(text).replace(/\s+/g,' ').replace(/(\d)\s*-\s*(?=\d)/g,'$1-').replace(/([₩￦])\s+(?=\d)/g,'$1').replace(/(\d)\s*,\s*(?=\d{3}(?!\d))/g,'$1,'),LBL=/^(총|합|소\s?계|대\s?표|사\s?업|주\s?소|업\s?태|종\s?목|성\s?명|부가|금액|공급|등록|귀하)/,ME=/큐비크스|kyvikos|광운|로보페스트/i,o={},num=x=>+String(x).replace(/[^\d]/g,'')||0;
+  const nm=[...t.matchAll(/상\s?호(?:\s?\(법인명\))?\s*[:：]?\s*(.{1,30}?)(?=\s(?:대\s?표|성\s?명|사업|주\s?소|업\s?태|총\s?계|등록|\(인\))|$)/g)].map(m=>m[1].trim())
+    .concat([...t.matchAll(/(주식회사\s?[가-힣A-Za-z0-9&]+|\(주\)\s?[가-힣A-Za-z0-9&]+|[가-힣A-Za-z0-9&]+\s?\(주\))/g)].map(m=>m[1].trim())).filter(x=>x&&/[가-힣A-Za-z]{2}/.test(x)&&!ME.test(x)&&!LBL.test(x));
+  if(nm.length)o.name=nm[0];else if(fname){const b=fname.replace(/\.[^.]+$/,'').split(/[_\s\[\]()]+/).find(x=>/[가-힣A-Za-z]{2}/.test(x)&&!/견적|영수|invoice|quote|estimate|비전|선포|행사/i.test(x)&&!ME.test(x));if(b)o.name=b}
+  const tot=[];for(const m of t.matchAll(/(총\s?계|총\s?견적\s?금액|총\s?금액|합\s?계\s?금액|청구\s?금액|결제\s?금액|공급\s?대가|TOTAL|합\s?계|총\s?액)/gi)){const w=t.slice(m.index,m.index+90).match(/[₩￦]?\s?(\d{1,3}(?:,\d{3})+|\d{5,})(?!\d)/);if(w)tot.push(num(w[1]))}
+  for(const m of t.matchAll(/(?:^|[^\d,-])(\d{1,3}(?:,\d{3})+)(?![\d,])/g))tot.push(num(m[1]));
+  if(tot.length)o.total=Math.max(...tot);
+  const ac=t.match(new RegExp('('+BANKS+')(?:은행)?\\s*[:：)]?\\s*(?:계좌\\s*[:：]?\\s*)?(\\d{2,6}(?:[-\\s]\\d{2,7}){1,4})'))||t.match(/계좌(?:번호)?\s*[:：]?\s*(\S*?)\s*(\d{2,6}(?:-\d{2,7}){1,4})/);
+  if(ac){o.bank=ac[1]||'';o.acct=ac[2].replace(/\s/g,'-')}
+  const hd=t.match(/예금주\s*[:：]?\s*([^\s,·]{2,20})/);if(hd)o.holder=hd[1];
+  const bz=[...t.matchAll(/(\d{3}-\d{2}-\d{5})/g)].map(m=>m[1]);if(bz.length)o.bizno=bz[0];
+  const tl=t.match(/(?:전화(?:번호)?|연락처|T\s?E\s?L|Tel|대\))\s*[:：.)]?\s*(0\d{1,2}[-\s.]?\d{3,4}[-\s.]?\d{4})/i);if(tl)o.tel=tl[1].replace(/[\s.]/g,'-');
+  if(/VAT\s?[:：]?\s?별도/i.test(t))o.vatNote='부가세 별도 금액';
+  return o}
+const VLAB={name:'업체명',total:'총 금액',bank:'은행',acct:'계좌',holder:'예금주',tel:'연락처',bizno:'사업자번호'};
+async function vendorRead(vid,files,overwrite){const v=vOf(vid);if(!v)return;const note=t=>{const el=document.getElementById('vread-'+vid);if(el)el.textContent=t;toast(t)};
+  const got={};let n=0;
+  for(const f of files){note(`문서 읽는 중이에요… ${++n}/${files.length}`);try{const blob=f instanceof Blob?f:await (await fetch(BLOB(f.id))).blob();const o=parseQuote(await docText(blob,f.name,note),f.name);for(const k in o)if(got[k]==null&&o[k])got[k]=o[k]}catch(e){console.warn(e)}}
+  const filled=[];for(const k of Object.keys(VLAB))if(got[k]&&(overwrite||!v[k])){v[k]=got[k];filled.push(k)}
+  if(!filled.length){note(Object.keys(got).length?'읽었지만 이미 칸이 채워져 있어서 바꾸지 않았어요.':'문서에서 업체 정보를 찾지 못했어요. 직접 넣어 주세요.');return}
+  try{await saveRent({});note(`자동으로 넣었어요: ${filled.map(k=>VLAB[k]+' '+(k==='total'?won(v[k]):v[k])).join(' · ')}${got.vatNote?' ('+got.vatNote+')':''}. 맞는지 확인해 주세요.`)}catch(err){failMsg(err,'저장')}}
+function vendorPick(vid){const v=vOf(vid);if(!v)return;const rs=rows.filter(r=>r.kind==='rent');const d=document.createElement('div');d.className='dlg';
+  d.innerHTML=`<div class="dlgc" role="dialog" aria-modal="true" aria-label="${esc(vName(v))} 물품 고르기"><h3><span style="color:${v.color}">●</span> ${esc(vName(v))}에서 빌리는 물품</h3><div class="vpl">${rs.map(r=>{const o=vOf(r.rv);return `<label><input type="checkbox" value="${r.id}"${r.rv===vid?' checked':''}> ${esc(r.name)}${o&&o!==v?`<small style="color:${o.color}">지금 ${esc(vName(o))}</small>`:''}</label>`}).join('')}</div>
+  <div class="acts"><button type="button" data-x>닫기</button><button type="button" class="pri" data-ok>저장</button></div></div>`;
+  document.body.appendChild(d);const close=()=>d.remove();
+  d.addEventListener('click',async e=>{if(e.target===d||e.target.closest('[data-x]'))return close();if(!e.target.closest('[data-ok]'))return;
+    const ch=[];d.querySelectorAll('input[type=checkbox]').forEach(c=>{const r=rows.find(x=>x.id===c.value);if(!r)return;if(c.checked&&r.rv!==vid)ch.push([r,vid]);else if(!c.checked&&r.rv===vid)ch.push([r,''])});
+    close();try{for(const [r,x] of ch)await db.doc('items/'+r.id).update({rv:x});$('#msg').textContent=ch.length?`${vName(v)} 물품을 ${ch.length}개 바꿨어요.`:'바뀐 게 없어요.'}catch(err){failMsg(err,'저장')}});
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')close()})}
 function rcHTML(r){const L=r.rcpts||[];
   return `<div class="rcz" data-rcz="${r.id}"><span class="wl">영수증</span>${L.map((x,i)=>`<span class="rcc">${isPdf(x)?`<a class="rcf" href="${esc(BLOB(x.id))}" target="_blank" rel="noopener" title="${esc(x.name||'')}">PDF · ${esc((x.name||'영수증').slice(0,18))}</a>`:`<button type="button" class="rci" data-img="${esc(x.id)}" data-cap="${esc(r.name+' 영수증')}" aria-label="${esc(r.name)} 영수증 ${i+1} 크게 보기"><img src="${esc(BLOB(x.id))}" alt="" loading="lazy"></button>`}${ED()?`<button type="button" class="rcx" data-rcdel="${r.id}:${i}" aria-label="영수증 ${i+1} 삭제">×</button>`:''}</span>`).join('')}
     ${assets&&ED()?`<button type="button" class="rcadd" data-rcup="${r.id}">${L.length?'+ 추가':'여기에 끌어다 놓거나 눌러서 올리기 (PDF·이미지)'}</button>`:L.length?'':'<span class="pn">없음</span>'}</div>`}
 function rentRcHTML(){const r={id:'RENT',name:'대여',rcpts:rentRc};return `<section class="grp rcgrp"><h2>대여 영수증 · 견적서 <span>${rentRc.length}개</span></h2><div class="rcwrap">${rcHTML(r).replace('class="rcz"','class="rcz big"')}<div class="pn" style="margin-top:6px">대여 업체 영수증·견적서를 한 번에 올려 두는 칸이에요. 물품별로 따로 올릴 필요 없어요.</div></div></section>`}
 const rcIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*,application/pdf,.pdf',multiple:true});let rcFor=null;
-async function rcUpload(id,files){const r=id==='RENT'?{id,name:'대여',rcpts:rentRc}:rows.find(x=>x.id===id);files=[...files].filter(f=>/^image\//.test(f.type)||isPdf(f));
+async function rcUpload(id,files){const r=rcGet(id);files=[...files].filter(f=>/^image\//.test(f.type)||isPdf(f));
   if(!r||!files.length){$('#msg').textContent='PDF나 이미지 파일만 올릴 수 있어요.';return}if(!assets){$('#msg').textContent='파일을 올릴 권한이 없어요.';return}
   const L=(r.rcpts||[]).map(x=>({...x}));let n=0;
   try{for(const f of files){$('#msg').textContent=`영수증 올리는 중이에요… ${++n}/${files.length}`;const res=await assets.upload(f);L.push({id:res.id,name:f.name||'',type:f.type||''})}
-    if(id==='RENT')await db.doc('meta/rent').set({rcpts:L});else await db.doc('items/'+id).update({rcpts:L});$('#msg').textContent=`‘${r.name}’에 영수증 ${files.length}개를 붙였어요.`}
+    await rcSave(id,L);$('#msg').textContent=`‘${r.name}’에 ${id.startsWith('V-')?'문서':'영수증'} ${files.length}개를 붙였어요.`;if(id.startsWith('V-'))vendorRead(id.slice(2),files,false)}
   catch(err){failMsg(err,'영수증 올리기를')}}
 rcIn.addEventListener('change',()=>{if(rcFor&&rcIn.files.length)rcUpload(rcFor,rcIn.files);rcIn.value=''});
 $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-rcup]');if(u){rcFor=u.dataset.rcup;rcIn.click();return}
   const d=e.target.closest('[data-rcdel]');if(!d)return;
   if(!d.dataset.arm){d.dataset.arm='1';d.textContent='삭제';d.classList.add('arm');setTimeout(()=>{if(d.isConnected){delete d.dataset.arm;d.textContent='×';d.classList.remove('arm')}},3000);return}
-  const [id,i]=d.dataset.rcdel.split(':'),r=id==='RENT'?{rcpts:rentRc}:rows.find(x=>x.id===id);if(!r)return;const L=(r.rcpts||[]).slice(),gone=L.splice(+i,1)[0];
-  try{if(id==='RENT')await db.doc('meta/rent').set({rcpts:L});else await db.doc('items/'+id).update({rcpts:L});$('#msg').textContent='영수증을 지웠어요.';if(assets&&gone){try{await assets.delete(gone.id)}catch(_){}}}catch(err){failMsg(err,'삭제')}});
+  const [id,i]=d.dataset.rcdel.split(':'),r=rcGet(id);if(!r)return;const L=(r.rcpts||[]).slice(),gone=L.splice(+i,1)[0];
+  try{await rcSave(id,L);$('#msg').textContent='영수증을 지웠어요.';if(assets&&gone){try{await assets.delete(gone.id)}catch(_){}}}catch(err){failMsg(err,'삭제')}});
 const rczOf=e=>{if(!e.target.closest)return null;const row=e.target.closest('.row');return e.target.closest('[data-dz]')||e.target.closest('[data-rcz]')||row?.querySelector('[data-rcz]')||row?.querySelector('[data-dz]')};
 $('#list').addEventListener('dragover',e=>{const z=rczOf(e);if(!z||!e.dataTransfer||![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();e.dataTransfer.dropEffect='copy';
   document.querySelectorAll('.over').forEach(x=>x!==z&&x.classList.remove('over'));z.classList.add('over')});
@@ -748,7 +823,7 @@ render();
     render();tryFill();const el=$('#who');el.textContent=cw===false?`보기 전용으로 열려 있어요${meInfo?' · '+meInfo:''}`:cw?`편집 가능${meInfo?' · '+meInfo:''}`:(meInfo?meInfo:'');
     if(cw===false){el.style.cssText='color:#c92a2a;font-weight:700';$('#msg').textContent=meInfo?`${meInfo} 계정은 편집자 명단에 없어서 보기만 돼요.`:'지금은 보기 전용이에요. 수정하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}}catch(_){}});
   db.collection('vj').orderBy('o').onSnapshot(s=>{vj=s.docs.map(d=>({id:d.id,...d.data()}));if(vjEdit&&!vj.some(c=>c.id===vjEdit))vjEdit=null;if(vjEdit&&!vjDraft)vjDraft={...vj.find(c=>c.id===vjEdit)};render()},()=>{});
-  db.doc('meta/rent').onSnapshot(s=>{const d=s&&s.exists&&s.data?s.data():null;rentRc=(d&&d.rcpts)||[];render()},()=>{});
+  db.doc('meta/rent').onSnapshot(s=>{const d=s&&s.exists&&s.data?s.data():null;rentRc=(d&&d.rcpts)||[];rentV=(d&&d.vendors)||[];render()},()=>{});
   db.collection('items').orderBy('o').onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()}));render();tryFill()},()=>{$('#msg').textContent='목록을 불러오지 못했어요.'});
 })();
 </script>
