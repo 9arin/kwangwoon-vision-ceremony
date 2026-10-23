@@ -27,7 +27,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 `items.data`
 - 공통: `kind`(design|rent|buy|staff), `cat`, `name`, `qty`, `loc`, `note`, `code`, `st`, `o`
 - 상태 `st`: design 0미착수 1디자인완료 2출력발주 3설치완료 / rent 0미발주 1결제완료 2입고완료 / buy 0미구매 1결제완료 2입고완료 / staff 0미배정 1배정완료 2당일확인
-- `pins`: `[{x,y,l}]` 도면 좌표 (plaza.jpg 1672×941 픽셀 기준), `l` 비우면 자동 라벨
+- `pins`: `[{x,y,l}]` 도면 좌표 (plaza.jpg 1672×941 픽셀 기준), `l` 비우면 자동 라벨. 겹치는 이름표는 `layoutPills()` 가 화면에서만 밀어 띄우고 점+선으로 원래 자리와 이어 줌 (좌표 데이터는 안 바뀜)
 - 인력: `who`, `sex`(남/여) / 디자인: `imgs`, `vendor`, `vlink`
 - 대여·구매: `price`, `pq`, `pn`, `shipFee`, `shipFree`(이 금액 이상이면 배송비 0), `shipNote`, `link`, `ops`(운영텐트 보관 묶음)
 - 대여·구매 결제: `pay`(계좌|카드), `tax`(발행|미발행, 계좌일 때만). 결제 완료 여부는 상태 `st` 에 합쳐져 있음 (예전 `paid` 필드는 안 씀)

@@ -314,6 +314,20 @@ function pill(svg,X,Y,lab,col,aria,go,dot){const g=mk('g',{class:'pin',tabindex:
   mk('rect',{x:X-w/2,y:Y-19,width:w,height:38,rx:19,style:`fill:var(${col});stroke:#fff;stroke-width:3`},g);mk('text',{x:X,y:Y+6,'text-anchor':'middle'},g).textContent=lab;
   if(dot)mk('circle',{cx:X+w/2-4,cy:Y-17,r:7,style:'fill:#fff;stroke:#111;stroke-width:2'},g);
   g.addEventListener('click',go);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})}
+// 겹치는 이름표를 서로 밀어 띄우고, 원래 자리에서 멀어진 것은 점+선으로 이어 줌 (위치 데이터는 그대로)
+function layoutPills(svg,L){const H=38,G=6,W=1672,HH=941;
+  L.forEach(p=>{p.w=wOf(p.lab);p.x=p.X;p.y=p.Y});
+  for(let it=0;it<300;it++){let moved=false;
+    for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j],ox=(a.w+b.w)/2+G-Math.abs(a.x-b.x),oy=H+G-Math.abs(a.y-b.y);
+      if(ox<=0||oy<=0)continue;moved=true;
+      if(oy<=ox){const s=a.y<b.y||(a.y===b.y&&a.X<=b.X)?-1:1;a.y+=s*oy/2;b.y-=s*oy/2}
+      else{const s=a.x<b.x||(a.x===b.x&&a.Y<=b.Y)?-1:1;a.x+=s*ox/2;b.x-=s*ox/2}}
+    L.forEach(p=>{p.x=Math.min(W-p.w/2-4,Math.max(p.w/2+4,p.x));p.y=Math.min(HH-H/2-4,Math.max(H/2+4,p.y))});
+    if(!moved)break}
+  const far=L.filter(p=>Math.hypot(p.x-p.X,p.y-p.Y)>14);
+  far.forEach(p=>{mk('line',{x1:p.X,y1:p.Y,x2:p.x,y2:p.y,style:'stroke:#fff;stroke-width:5;stroke-linecap:round'},svg);mk('line',{x1:p.X,y1:p.Y,x2:p.x,y2:p.y,style:'stroke:#111;stroke-width:2;stroke-linecap:round'},svg)});
+  far.forEach(p=>mk('circle',{cx:p.X,cy:p.Y,r:7,style:`fill:var(${p.col});stroke:#fff;stroke-width:3`},svg));
+  L.forEach(p=>pill(svg,p.x,p.y,p.lab,p.col,p.aria,p.go,p.dot))}
 function legend(k){const kk=k==='all'?'design':k;const s=ST[kk];const cols=CL[kk];
   $('#lgd').innerHTML=s.map((x,i)=>`<span><i style="background:var(${cols[i]})"></i>${x}</span>`).join('');
   $('#mapt').textContent='도면으로 보기 · '+(k==='rent'?'대여 물품 위치':k==='buy'?'구매 물품 위치':k==='staff'?'인력 배치':'디자인 위치');
@@ -324,15 +338,16 @@ function renderMap(){
   const svg=$('#pins');svg.innerHTML='';legend(kind);
   const k=kind==='all'?'design':kind,ed=pend&&pend.edit?pend.id:null;
   if(k!=='design'){const [X,Y]=ANCH.recep;mk('text',{x:X,y:Y-32,'text-anchor':'middle',style:'font:700 17px var(--sans);fill:#fff;paint-order:stroke;stroke:#111;stroke-width:4px'},svg).textContent='리셉션 (건물 내부)'}
-  const ops=[];
+  const ops=[],L=[],add=(X,Y,lab,col,aria,go,dot)=>L.push({X,Y,lab,col,aria,go,dot});
   rows.filter(r=>r.kind===k).forEach(r=>{if(r.ops)ops.push(r);if(r.id===ed)return;
     const has=r.kind==='design'&&(r.imgs||[]).length;
     (r.pins||[]).forEach(p=>{const lab=r.kind==='staff'&&p.l?p.l+(r.who?' '+r.who:''):p.l||autoLab(r);
-      pill(svg,p.x,p.y,lab,colOf(r),`${lab} ${r.name}${r.kind==='staff'?' 담당 '+(r.who||'미정'):''} ${r.loc||''} ${ST[r.kind][r.st||0]}`,()=>{if(has)openImg(r);else goRow(r)},has)})});
+      add(p.x,p.y,lab,colOf(r),`${lab} ${r.name}${r.kind==='staff'?' 담당 '+(r.who||'미정'):''} ${r.loc||''} ${ST[r.kind][r.st||0]}`,()=>{if(has)openImg(r);else goRow(r)},has)})});
   if(ops.length){const done=ops.filter(doneOf).length,col=done===ops.length?'--done':done?'--prog':'--todo';
-    pill(svg,OPSAT[0],OPSAT[1],`운영텐트 보관 ${done}/${ops.length}`,col,`운영텐트 보관 물품 ${ops.length}종 중 ${done}종 확보`,()=>goRow(ops.find(r=>!doneOf(r))||ops[0]))}
+    add(OPSAT[0],OPSAT[1],`운영텐트 보관 ${done}/${ops.length}`,col,`운영텐트 보관 물품 ${ops.length}종 중 ${done}종 확보`,()=>goRow(ops.find(r=>!doneOf(r))||ops[0]))}
   if(pend&&pend.pins){const nm=$('#f-name').value.trim()||'새 항목';
-    pend.pins.forEach((p,i)=>pill(svg,p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
+    pend.pins.forEach((p,i)=>add(p.x,p.y,p.l||($('#f-code').value.trim()||nm),'--pend','편집 중인 위치 '+(i+1),()=>{}))}
+  layoutPills(svg,L);
 }
 function render(){
   const fa=document.activeElement,fm=fa&&fa.dataset&&fa.dataset.memo?{id:fa.dataset.memo,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
