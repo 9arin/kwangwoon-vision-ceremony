@@ -39,6 +39,8 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 - 구매: `rcpts` `[{id,name,type}]` 영수증 / 대여 영수증은 `meta` 의 `rent` 문서 `{rcpts:[…]}` 하나로 묶음
 - 대여 업체: `meta/rent.vendors` `[{id,color,name,total,bank,acct,holder,tel,bizno,rcpts}]`, 대여 물품의 `rv` = 업체 id (행 왼쪽 색 막대, 오른쪽 '대여 업체 고르기'). 업체 칸에 견적서를 올리면 `vendorRead` → `docText`(pdf.js + 한글 cMaps, 한글이 없으면 Tesseract 글자 인식) → `parseQuote` 가 빈 칸만 채움. '문서에서 다시 읽기'는 덮어씀. 금액은 문서 안 가장 큰 금액, 업체명은 상호/주식회사/(주) → 없으면 파일 이름
 
+할 일(탭 `todo`): `meta` 테이블의 `t-…` 문서 `{kind:'todo',text,who(담당),by(작성자),at,done,doneAt,doneBy,how(완료 메모),o}`. 편집 계정이 공용이라 작성자는 추가할 때 이름을 적고 브라우저가 기억(localStorage `tdName`). 완료 메모는 할 일 바로 아래 초록 기울임 글씨
+
 `vj.data`: `no,s,e,item,desc,cast,mat,music,pa,ledL,ledC,ledR,live,rem`, `scr:[{l,img,link}]`
 
 권한: 읽기는 누구나, 쓰기는 `editors` 테이블에 있는 이메일로 로그인한 사람만 (RLS + `is_editor()`).
