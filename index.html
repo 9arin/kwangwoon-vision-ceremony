@@ -151,6 +151,13 @@ select:disabled{opacity:.85}
 .ttw{overflow-x:auto}.tt{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5}.tt th,.tt td{border-top:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
 .tt th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--bg);white-space:nowrap}.tt td.k{font-weight:700;white-space:nowrap}.tt td.ck{text-align:center;width:56px}.tt td.ck input{width:18px;height:18px;accent-color:var(--done)}
 .tt tr.done td{color:var(--muted)}
+.tt.ed td{padding:4px 6px}.ttc{display:block;width:100%;min-width:110px;box-sizing:border-box;font:inherit;font-size:13.5px;line-height:1.5;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 6px;resize:vertical;field-sizing:content;min-height:30px}
+.ttc:hover{border-color:var(--line)}.ttc:focus{border-color:var(--accent);background:var(--bg);outline:0}.tt td.k .ttc{font-weight:700}
+.tthw{display:flex;align-items:center;gap:2px}.tthi{font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:6px;padding:2px 4px;min-width:60px;width:100%}.tthi:focus,.tthi:hover{border-color:var(--line);color:var(--ink)}
+.ttx{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:6px;padding:1px 6px;cursor:pointer}.ttx.arm{background:#c92a2a;color:#fff;border-color:#c92a2a}
+.tta{width:1%;white-space:nowrap}.ttra{display:inline-flex;gap:2px}.ttra button{font:inherit;font-size:11px;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:5px;padding:2px 6px;cursor:pointer}.ttra button:hover{color:var(--ink)}
+.tth2{gap:10px;align-items:center}.ttti{flex:1;font:inherit;font-size:13px;font-weight:700;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 6px}.ttti:hover,.ttti:focus{border-color:var(--line);background:var(--paper)}
+.ttfoot{padding:8px 12px;border-top:1px solid var(--line)}.ttadd{font:inherit;width:100%;border:1px dashed var(--muted);border-radius:10px;background:none;color:var(--muted);cursor:pointer;padding:14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -480,10 +487,17 @@ secIn.addEventListener('change',()=>{if(secFor&&secIn.files.length){const [id,k]
 let tt=null;
 const XLSXJS='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 function renderTT(){const ed=ED();
-  const bar=ed?`<div class="ttbar">${tt?`${esc(tt.src||'')} · ${esc(tt.at||'')} 기준`:''}<button type="button" class="mv" data-ttup>${tt?'엑셀 다시 올리기':'엑셀 올리기'}</button><span>(.xlsx · 시트마다 표 하나로 보여요)</span></div>`:'';
-  if(!tt||!(tt.sheets||[]).length){$('#list').innerHTML=bar+'<div class="grp"><div class="empty">타임테이블이 아직 없어요.</div></div>';return}
-  $('#list').innerHTML=bar+tt.sheets.map((sh,si)=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인');
-    return `<section class="grp"><h2>${esc(sh.title||sh.name)}<span>${esc(sh.name)}</span></h2><div class="ttw"><table class="tt"><thead><tr>${sh.header.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${sh.rows.map((r,ri)=>`<tr${ck>=0&&r[ck]?' class="done"':''}>${sh.header.map((h,ci)=>ci===ck?`<td class="ck"><input type="checkbox" data-ttck="${si}:${ri}:${ci}"${r[ci]?' checked':''}${ed?'':' disabled'} aria-label="${esc(r[0]||'')} 확인"></td>`:`<td${ci===0?' class="k"':''}>${esc(r[ci]||'').replace(/ → /g,' →<br>').replace(/\n/g,'<br>')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`}).join('')}
+  const bar=ed?`<div class="ttbar">${tt?`${esc(tt.src||'')}${tt.src?' · ':''}${esc(tt.at||'')} 기준${tt.edited?` · 페이지에서 고침 ${esc(tt.edited)}`:''}`:''}<button type="button" class="mv" data-ttup>${tt?'엑셀 다시 올리기':'엑셀 올리기'}</button><span>칸을 누르면 바로 고칠 수 있어요. 엑셀을 다시 올리면 페이지에서 고친 내용은 덮어써져요.</span></div>`:'';
+  if(!tt||!(tt.sheets||[]).length){$('#list').innerHTML=bar+`<div class="grp"><div class="empty">타임테이블이 아직 없어요.</div></div>${ed?'<button type="button" class="ttadd" data-ttsadd>+ 표 추가</button>':''}`;return}
+  $('#list').innerHTML=bar+tt.sheets.map((sh,si)=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인'),nc=sh.header.length;
+    const head=ed?`<h2 class="tth2"><input class="ttti" data-ttt="${si}" value="${esc(sh.title||sh.name)}" aria-label="표 제목"><span><button type="button" class="rm" data-ttsdel="${si}">표 삭제</button></span></h2>`:`<h2>${esc(sh.title||sh.name)}<span>${esc(sh.name)}</span></h2>`;
+    const th=sh.header.map((h,ci)=>ed?`<th><div class="tthw"><input class="tthi" data-tth="${si}:${ci}" value="${esc(h)}" aria-label="칸 이름"><button type="button" class="ttx" data-ttcdel="${si}:${ci}" title="이 칸 삭제" aria-label="${esc(h)} 칸 삭제">×</button></div></th>`:`<th>${esc(h)}</th>`).join('')+(ed?`<th class="tta"><button type="button" class="mv" data-ttcadd="${si}">+ 칸</button></th>`:'');
+    const body=sh.rows.map((r,ri)=>`<tr${ck>=0&&r[ck]?' class="done"':''}>${sh.header.map((h,ci)=>ci===ck?`<td class="ck"><input type="checkbox" data-ttck="${si}:${ri}:${ci}"${r[ci]?' checked':''}${ed?'':' disabled'} aria-label="${esc(r[0]||'')} 확인"></td>`
+      :ed?`<td${ci===0?' class="k"':''}><textarea class="ttc" data-ttc="${si}:${ri}:${ci}" rows="1" aria-label="${esc(h)}">${esc(r[ci]||'')}</textarea></td>`
+      :`<td${ci===0?' class="k"':''}>${esc(r[ci]||'').replace(/ → /g,' →<br>').replace(/\n/g,'<br>')}</td>`).join('')}${ed?`<td class="tta"><span class="ttra"><button type="button" data-ttrmv="${si}:${ri}:-1" title="위로">▲</button><button type="button" data-ttrmv="${si}:${ri}:1" title="아래로">▼</button><button type="button" data-ttrins="${si}:${ri}" title="아래에 줄 추가">＋</button><button type="button" class="ttx" data-ttrdel="${si}:${ri}" title="줄 삭제">×</button></span></td>`:''}</tr>`).join('');
+    return `<section class="grp">${head}<div class="ttw"><table class="tt${ed?' ed':''}"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>${ed?`<div class="ttfoot"><button type="button" class="mv" data-ttradd="${si}">+ 줄 추가</button></div>`:''}</section>`}).join('')+(ed?'<button type="button" class="ttadd" data-ttsadd>+ 표 추가</button>':'')}
+const ttSave=async msg=>{tt.edited=nowStamp();try{await db.doc('meta/tt').set(tt);if(msg)$('#msg').textContent=msg}catch(err){failMsg(err,'저장');render()}};
+const ttArm=(b,lab)=>{if(b.dataset.arm)return true;b.dataset.arm='1';const t=b.textContent;b.textContent=lab;b.classList.add('arm');setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent=t;b.classList.remove('arm')}},3000);return false};
 const ttIn=Object.assign(document.createElement('input'),{type:'file',accept:'.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 ttIn.addEventListener('change',async()=>{const f=ttIn.files[0];ttIn.value='';if(!f)return;$('#msg').textContent='엑셀을 읽는 중이에요…';
   try{await loadJS(XLSXJS);const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
@@ -497,7 +511,7 @@ function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<bu
   return `<div class="stf" role="group" aria-label="상태로 골라 보기">${b('','전체',bs.length)}${ST.buy.map((x,i)=>b(i,x,bs.filter(r=>(r.st||0)===i).length,CL.buy[i])).join('')}</div>`}
 function restoreFocus(fm){if(!fm)return;const t=document.querySelector(fm.q);if(t){t.value=fm.v;t.focus();try{t.setSelectionRange(fm.a,fm.b)}catch(e){}}}
 function render(){
-  const fa=document.activeElement,fk=fa&&fa.dataset&&['memo','vnf','vf','tdh','tdt','tdw','tel'].find(k=>fa.dataset[k]!=null),fm=fk?{q:`[data-${fk}="${fa.dataset[fk]}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
+  const fa=document.activeElement,fk=fa&&fa.dataset&&['memo','vnf','vf','tdh','tdt','tdw','tel','ttc','tth','ttt'].find(k=>fa.dataset[k]!=null),fm=fk?{q:`[data-${fk}="${fa.dataset[fk]}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
   summary();const isVJ=kind==='vj',isTD=kind==='todo';$('#mapc').hidden=isVJ||isTD||kind==='tt';$('#addbtn').hidden=isVJ||isTD||kind==='tt'||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   if(isTD){if(!$('#addf').hidden)closeForm();renderTodo();restoreFocus(fm);return}
   if(kind==='tt'){if(!$('#addf').hidden)closeForm();renderTT();return}
@@ -529,6 +543,9 @@ $('#list').addEventListener('submit',async e=>{if(e.target.id!=='tdadd')return;e
 $('#list').addEventListener('change',async e=>{if(!db)return;
   const tc=e.target.closest('[data-tdck]');if(tc){const id=tc.dataset.tdck,dn=tc.checked;try{await db.doc('meta/'+id).update({done:dn,doneAt:dn?nowStamp():''});$('#msg').textContent=dn?'완료했어요. 아래 칸에 어떻게 완료했는지 적어 주세요.':'다시 할 일로 돌렸어요.';if(dn)setTimeout(()=>{const h=document.querySelector(`[data-tdh="${id}"]`);if(h)h.focus()},400)}catch(err){failMsg(err,'저장');render()}return}
   const rd=e.target.closest('[data-rdo]');if(rd){try{await db.doc('items/'+rd.dataset.rdo).update({radio:rd.checked});$('#msg').textContent=rd.checked?'무전기 사용으로 표시했어요.':'무전기 표시를 뺐어요.'}catch(err){failMsg(err,'저장');render()}return}
+  const ttce=e.target.closest('[data-ttc]');if(ttce&&tt){const [si,ri,ci]=ttce.dataset.ttc.split(':').map(Number);tt.sheets[si].rows[ri][ci]=ttce.value;return ttSave('저장했어요.')}
+  const thh=e.target.closest('[data-tth]');if(thh&&tt){const [si,ci]=thh.dataset.tth.split(':').map(Number);tt.sheets[si].header[ci]=thh.value.trim();return ttSave('칸 이름을 바꿨어요.')}
+  const ttl=e.target.closest('[data-ttt]');if(ttl&&tt){tt.sheets[+ttl.dataset.ttt].title=ttl.value.trim();return ttSave('표 제목을 바꿨어요.')}
   const tk=e.target.closest('[data-ttck]');if(tk&&tt){const [si,ri,ci]=tk.dataset.ttck.split(':').map(Number);tt.sheets[si].rows[ri][ci]=tk.checked?'✓':'';try{await db.doc('meta/tt').set(tt);$('#msg').textContent=tk.checked?'확인했어요.':'확인 표시를 뺐어요.'}catch(err){failMsg(err,'저장');render()}return}
   const sz=e.target.closest('[data-sz]');if(sz){try{await db.doc('items/'+sz.dataset.sz).update({size:sz.value});$('#msg').textContent=sz.value?`옷 사이즈 ${sz.value}로 저장했어요.`:'옷 사이즈를 비웠어요.'}catch(err){failMsg(err,'저장')}return}
   const tl=e.target.closest('[data-tel]');if(tl){try{await db.doc('items/'+tl.dataset.tel).update({tel:tl.value.trim()});$('#msg').textContent='연락처를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
@@ -580,6 +597,15 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     const [id,i]=sd.dataset.secdel.split(':'),r=rows.find(x=>x.id===id);if(!r)return;const L=(r.sdocs||[]).slice(),gone=L.splice(+i,1)[0];
     try{await db.doc('items/'+id).update({sdocs:L});if(gone)await secB().remove([gone.f]);$('#msg').textContent='서류를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
   if(e.target.closest('[data-ttup]')){ttIn.click();return}
+  {const b=e.target.closest('[data-ttradd],[data-ttrins],[data-ttrmv],[data-ttrdel],[data-ttcadd],[data-ttcdel],[data-ttsadd],[data-ttsdel]');if(b&&ED()){const d=b.dataset,n=x=>x.split(':').map(Number);
+    if(d.ttsadd!=null){tt=tt||{src:'',at:nowStamp(),sheets:[]};tt.sheets.push({name:'새 표',title:'새 표',header:['항목','내용','비고'],rows:[['','','']]});return ttSave('표를 추가했어요.')}
+    if(d.ttsdel!=null){if(!ttArm(b,'정말 삭제'))return;tt.sheets.splice(+d.ttsdel,1);return ttSave('표를 지웠어요.')}
+    if(d.ttradd!=null){const s2=tt.sheets[+d.ttradd];s2.rows.push(s2.header.map(()=>''));await ttSave('줄을 추가했어요.');const t=document.querySelector(`[data-ttc="${d.ttradd}:${s2.rows.length-1}:0"]`);if(t)t.focus();return}
+    if(d.ttrins!=null){const [si,ri]=n(d.ttrins),s2=tt.sheets[si];s2.rows.splice(ri+1,0,s2.header.map(()=>''));await ttSave('줄을 추가했어요.');const t=document.querySelector(`[data-ttc="${si}:${ri+1}:0"]`);if(t)t.focus();return}
+    if(d.ttrmv!=null){const [si,ri,dd]=n(d.ttrmv),R=tt.sheets[si].rows,to=ri+dd;if(to<0||to>=R.length)return;[R[ri],R[to]]=[R[to],R[ri]];return ttSave('줄 순서를 바꿨어요.')}
+    if(d.ttrdel!=null){if(!ttArm(b,'삭제'))return;const [si,ri]=n(d.ttrdel);tt.sheets[si].rows.splice(ri,1);return ttSave('줄을 지웠어요.')}
+    if(d.ttcadd!=null){const s2=tt.sheets[+d.ttcadd];s2.header.push('새 칸');s2.rows.forEach(r=>r.push(''));return ttSave('칸을 추가했어요.')}
+    if(d.ttcdel!=null){if(!ttArm(b,'삭제'))return;const [si,ci]=n(d.ttcdel),s2=tt.sheets[si];if(s2.header.length<=1){toast('칸이 하나뿐이라 지울 수 없어요.');return}s2.header.splice(ci,1);s2.rows.forEach(r=>r.splice(ci,1));return ttSave('칸을 지웠어요.')}}}
   const sf=e.target.closest('[data-stf]');if(sf){stF=sf.dataset.stf===''?null:+sf.dataset.stf;render();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
     if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
