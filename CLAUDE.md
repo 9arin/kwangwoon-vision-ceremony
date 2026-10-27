@@ -43,7 +43,7 @@ UI 문구는 모두 한국어, "~해요" 체를 씁니다.
 - 이미지 크게 보기(라이트박스)에 '내려받기' 버튼 — 잠금 서류에는 안 나옴
 - 메모: `memo` (디자인·대여·구매 행 오른쪽 칸)
 - 구매: `rcpts` `[{id,name,type}]` 영수증 / 대여 영수증은 `meta` 의 `rent` 문서 `{rcpts:[…]}` 하나로 묶음
-- 대여 업체: `meta/rent.vendors` `[{id,color,name,total,bank,acct,holder,tel,bizno,rcpts}]`, 대여 물품의 `rv` = 업체 id (행 왼쪽 색 막대, 오른쪽 '대여 업체 고르기'). 업체 칸에 견적서를 올리면 `vendorRead` → `docText`(pdf.js + 한글 cMaps, 한글이 없으면 Tesseract 글자 인식) → `parseQuote` 가 빈 칸만 채움. '문서에서 다시 읽기'는 덮어씀. 금액은 문서 안 가장 큰 금액, 업체명은 상호/주식회사/(주) → 없으면 파일 이름
+- 대여 업체: `meta/rent.vendors` `[{id,color,name,total,bank,acct,holder,tel,bizno,rcpts}]`, 대여 물품의 `rv` = 업체 id (행 왼쪽 색 막대, 오른쪽 '대여 업체 고르기'). 업체 칸은 '접기/펼치기'(localStorage `vendOpen`), 카드는 평소 읽기 화면이고 '수정'을 눌러야 입력 칸(`vEdit`)이 열림. 업체 칸에 견적서를 올리면 `vendorRead` → `docText`(pdf.js + 한글 cMaps, 한글이 없으면 Tesseract 글자 인식) → `parseQuote` 가 빈 칸만 채움. '문서에서 다시 읽기'는 덮어씀. 금액은 문서 안 가장 큰 금액, 업체명은 상호/주식회사/(주) → 없으면 파일 이름
 
 타임테이블(탭 `tt`): 음향·중계·VJ 엑셀(`meta/tt` = `{src,at,sheets:[{name,title,header,rows}]}`). 편집 모드에서 칸·표 제목·칸 이름을 바로 고치고, 줄(추가·끼워 넣기·▲▼·삭제)·칸(추가·삭제)·표(추가·삭제)도 바꿀 수 있음(`ttSave`, `edited` 시각). '엑셀 다시 올리기'(SheetJS)는 통째로 덮어씀. 헤더가 '확인'인 칸은 체크박스(✓ 저장)
 

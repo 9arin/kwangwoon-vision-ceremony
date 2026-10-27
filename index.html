@@ -116,7 +116,7 @@ select:disabled{opacity:.85}
 .vh{display:flex;gap:8px;align-items:center}.vn{font-weight:700;color:var(--vc)}.vh .mv:first-of-type{margin-left:auto}
 .vf{display:grid;grid-template-columns:70px minmax(0,1fr);gap:6px;align-items:center;font-size:13px}.vf>span{color:var(--muted);font-size:12px}.vf b{font-weight:600;overflow-wrap:anywhere}
 .vf input{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
-.vits{font-size:12.5px;color:var(--muted)}.vadd{font:inherit;border:1px dashed var(--muted);border-radius:10px;background:none;color:var(--muted);cursor:pointer;min-height:90px}
+.vits{font-size:12.5px;color:var(--muted)}.vnm{font-size:14px}.vh .vnm+.mv,.vh .vn+.mv{margin-left:auto}.vh .mv:first-of-type{margin-left:auto}.mv.vdone{color:#fff;background:var(--accent);border-radius:999px;padding:1px 10px;text-decoration:none}.rcgrp h2 .mv{color:var(--accent);margin-left:8px}.vadd{font:inherit;border:1px dashed var(--muted);border-radius:10px;background:none;color:var(--muted);cursor:pointer;min-height:90px}
 .vread{font-size:12.5px;color:var(--accent)}.vchip{font-size:12px;padding:1px 10px;border-radius:999px;color:#fff;background:var(--vc);font-weight:600}
 .row.vrow{box-shadow:inset 7px 0 0 var(--vc)}.pay select[data-vsel]:not([data-v=""]){border-left-color:var(--vc)}
 .vpl{max-height:55vh;overflow:auto;display:grid;gap:2px;border:1px solid var(--line);border-radius:8px;padding:6px}.vpl label{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px;font-size:14px;cursor:pointer}.vpl label:hover{background:var(--bg)}.vpl small{color:var(--muted);margin-left:auto;font-size:12px}
@@ -582,7 +582,9 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
   const ln=e.target.closest('[data-ln]');if(ln){const r=rows.find(x=>x.id===ln.dataset.ln);if(!r)return;const box=ln.parentElement,L=linksOf(r);
     box.innerHTML=`<div class="lned">${(L.length?L:['']).map(lnInp).join('')}<div><button type="button" class="mv" data-lnadd>+ 링크 추가</button> <button type="button" class="mv" data-lnsave="${r.id}">저장</button></div></div>`;box.querySelector('input').focus();return}
   if(e.target.closest('[data-vnadd]')){const used=rentV.map(v=>v.color),color=VCOL.find(c=>!used.includes(c))||VCOL[rentV.length%VCOL.length];
-    rentV=[...rentV,{id:'v'+Date.now().toString(36),color,name:'',rcpts:[]}];try{await saveRent({});$('#msg').textContent=`${rentV.length}번 업체를 만들었어요. 견적서를 올리거나 정보를 넣어 주세요.`}catch(err){failMsg(err,'저장')}return}
+    const nid='v'+Date.now().toString(36);vEdit.add(nid);rentV=[...rentV,{id:nid,color,name:'',rcpts:[]}];try{await saveRent({});$('#msg').textContent=`${rentV.length}번 업체를 만들었어요. 견적서를 올리거나 정보를 넣어 주세요.`}catch(err){failMsg(err,'저장')}return}
+  if(e.target.closest('[data-vntog]')){vOpen=!vOpen;try{localStorage.setItem('vendOpen',vOpen?'1':'0')}catch(_){}render();return}
+  const vne=e.target.closest('[data-vnedit]');if(vne){const id=vne.dataset.vnedit;if(vEdit.has(id)){vEdit.delete(id);$('#msg').textContent='업체 정보를 저장했어요.'}else vEdit.add(id);render();if(vEdit.has(id)){const i=document.querySelector(`[data-vnf="${id}:name"]`);if(i)i.focus()}return}
   const vpk=e.target.closest('[data-vpick]');if(vpk){vendorPick(vpk.dataset.vpick);return}
   const vrd=e.target.closest('[data-vread]');if(vrd){const v=vOf(vrd.dataset.vread);if(v)vendorRead(v.id,v.rcpts||[],true);return}
   const vdl=e.target.closest('[data-vndel]');if(vdl){if(!vdl.dataset.arm){vdl.dataset.arm='1';vdl.textContent='정말 삭제';vdl.classList.add('arm');setTimeout(()=>{if(vdl.isConnected){delete vdl.dataset.arm;vdl.textContent='삭제';vdl.classList.remove('arm')}},3000);return}
@@ -924,15 +926,18 @@ const vOf=id=>rentV.find(v=>v.id===id),vNo=v=>rentV.indexOf(v)+1,vName=v=>v.name
 const saveRent=patch=>db.doc('meta/rent').set({rcpts:rentRc,vendors:rentV,...patch});
 const rcGet=id=>id==='RENT'?{id,name:'대여',rcpts:rentRc}:id.startsWith('V-')?(v=>v&&{id,name:vName(v),rcpts:v.rcpts||[],v})(vOf(id.slice(2))):rows.find(x=>x.id===id);
 async function rcSave(id,L){if(id==='RENT'){rentRc=L;return saveRent({rcpts:L})}if(id.startsWith('V-')){const v=vOf(id.slice(2));v.rcpts=L;return saveRent({})}return db.doc('items/'+id).update({rcpts:L})}
-function vendorsHTML(){const ed=ED();
+let vOpen=true;try{vOpen=localStorage.getItem('vendOpen')!=='0'}catch(e){}const vEdit=new Set();
+function vendorsHTML(){const ed=ED(),docs=rentRc.length+rentV.reduce((n,v)=>n+(v.rcpts||[]).length,0);
+  if(!vOpen)return `<section class="grp rcgrp"><h2>대여 업체 · 견적서 <span>${rentV.length}곳 · 문서 ${docs}개 <button type="button" class="mv" data-vntog>펼치기 ▾</button></span></h2></section>`;
   const cards=rentV.map(v=>{const its=rows.filter(r=>r.kind==='rent'&&r.rv===v.id),sum=its.reduce((a,r)=>a+tot(r),0);
-    const f=(k,lab,ph)=>ed?`<label class="vf"><span>${lab}</span><input data-vnf="${v.id}:${k}" value="${esc(k==='total'&&+v[k]?(+v[k]).toLocaleString('ko-KR'):v[k]||'')}" placeholder="${ph}"${k==='total'?' inputmode="numeric"':''}></label>`:(v[k]?`<div class="vf"><span>${lab}</span><b>${esc(k==='total'?won(+v[k]):v[k])}</b></div>`:'');
-    return `<div class="vcard" style="--vc:${v.color}"><div class="vh"><span class="vn">${vNo(v)}번 업체</span>${ed?`<button type="button" class="mv" data-vpick="${v.id}">물품 고르기</button><button type="button" class="rm" data-vndel="${v.id}">삭제</button>`:''}</div>
+    const editing=ed&&vEdit.has(v.id);
+    const f=(k,lab,ph)=>editing?`<label class="vf"><span>${lab}</span><input data-vnf="${v.id}:${k}" value="${esc(k==='total'&&+v[k]?(+v[k]).toLocaleString('ko-KR'):v[k]||'')}" placeholder="${ph}"${k==='total'?' inputmode="numeric"':''}></label>`:(v[k]?`<div class="vf"><span>${lab}</span><b>${esc(k==='total'?won(+v[k]):v[k])}</b></div>`:'');
+    return `<div class="vcard" style="--vc:${v.color}"><div class="vh"><span class="vn">${vNo(v)}번 업체</span>${!editing&&v.name?`<b class="vnm">${esc(v.name)}</b>`:''}${ed?`<button type="button" class="mv${editing?' vdone':''}" data-vnedit="${v.id}">${editing?'완료':'수정'}</button><button type="button" class="mv" data-vpick="${v.id}">물품 고르기</button>${editing?`<button type="button" class="rm" data-vndel="${v.id}">삭제</button>`:''}`:''}</div>${!editing&&!['name','total','bank','acct','holder','tel','bizno'].some(k=>v[k])?`<div class="vits">아직 정보가 없어요.${ed?' ‘수정’을 눌러 넣거나 견적서를 올려 주세요.':''}</div>`:''}
       ${f('name','업체명','예: 아커스 컴퍼니')}${f('total','총 금액','숫자만')}${f('bank','은행','예: 농협은행')}${f('acct','계좌번호','000-0000-0000')}${f('holder','예금주','')}${f('tel','연락처','')}${f('bizno','사업자번호','000-00-00000')}
       <div class="vits">맡긴 물품 <b>${its.length}개</b>${its.length?` · ${its.map(r=>esc(r.name)).join(', ')}`:''}${sum?` · 물품 합계 ${won(sum)}`:''}</div>
       ${rcHTML({id:'V-'+v.id,name:vName(v),rcpts:v.rcpts||[]}).replace('<span class="wl">영수증</span>','<span class="wl">견적서·영수증</span>')}
       ${ed&&(v.rcpts||[]).length?`<div><button type="button" class="mv" data-vread="${v.id}">문서에서 다시 읽기</button> <span class="vread" id="vread-${v.id}"></span></div>`:`<span class="vread" id="vread-${v.id}"></span>`}</div>`}).join('');
-  return `<section class="grp rcgrp"><h2>대여 업체 · 견적서 <span>${rentV.length}곳</span></h2><div class="vwrap">${cards||(ed?'':'<div class="pn">아직 업체가 없어요.</div>')}${ed?'<button type="button" class="vadd" data-vnadd>+ 업체 추가</button>':''}</div>${rentRc.length?`<div class="rcwrap">${rcHTML({id:'RENT',name:'대여',rcpts:rentRc})}</div>`:''}${ed?'<div class="pn" style="padding:0 16px 12px">업체 칸에 견적서·영수증을 올리면 업체명·총 금액·계좌를 자동으로 읽어 빈 칸에 넣어요. 맞는지 꼭 확인해 주세요.</div>':''}</section>`}
+  return `<section class="grp rcgrp"><h2>대여 업체 · 견적서 <span>${rentV.length}곳 · 문서 ${docs}개 <button type="button" class="mv" data-vntog>접기 ▴</button></span></h2><div class="vwrap">${cards||(ed?'':'<div class="pn">아직 업체가 없어요.</div>')}${ed?'<button type="button" class="vadd" data-vnadd>+ 업체 추가</button>':''}</div>${rentRc.length?`<div class="rcwrap">${rcHTML({id:'RENT',name:'대여',rcpts:rentRc})}</div>`:''}${ed?'<div class="pn" style="padding:0 16px 12px">업체 칸에 견적서·영수증을 올리면 업체명·총 금액·계좌를 자동으로 읽어 빈 칸에 넣어요. 맞는지 꼭 확인해 주세요.</div>':''}</section>`}
 // ── 견적서 읽기: PDF 글자(pdf.js) → 없으면 글자 인식(Tesseract, 한국어) → 업체명·총 금액·계좌 등 찾기
 const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',TESS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
 async function ocr(img,note){await loadJS(TESS);note&&note('글자를 알아보는 중이에요… (처음엔 30초쯤 걸려요)');const r=await Tesseract.recognize(img,'kor+eng');return r.data.text||''}
