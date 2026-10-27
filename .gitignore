@@ -3,3 +3,8 @@
 *.local
 node_modules/
 .DS_Store
+
+# 폴더에 둔 원본 파일 (페이지에 안 올림)
+/01_schema.sql
+/02_seed.sql
+/*.zip
