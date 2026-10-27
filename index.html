@@ -151,6 +151,7 @@ select:disabled{opacity:.85}
 .ttw{overflow-x:auto}.tt{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5}.tt th,.tt td{border-top:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
 .tt th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--bg);white-space:nowrap}.tt td.k{font-weight:700;white-space:nowrap}.tt td.ck{text-align:center;width:56px}.tt td.ck input{width:18px;height:18px;accent-color:var(--done)}
 .tt tr.done td{color:var(--muted)}
+.ttimw{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;padding:12px 16px}.ttim{margin:0;flex:1 1 420px;max-width:820px}.ttim .th{display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;cursor:zoom-in}.ttim img{display:block;width:100%;height:auto}.ttim figcaption{font-size:12.5px;color:var(--muted);margin-top:6px;display:flex;gap:6px;align-items:center}.ttims.over{outline:2px dashed var(--accent);outline-offset:3px;background:var(--accent-soft)}
 .tt.ed td{padding:4px 6px}.ttc{display:block;width:100%;min-width:110px;box-sizing:border-box;font:inherit;font-size:13.5px;line-height:1.5;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 6px;resize:vertical;field-sizing:content;min-height:30px}
 .ttc:hover{border-color:var(--line)}.ttc:focus{border-color:var(--accent);background:var(--bg);outline:0}.tt td.k .ttc{font-weight:700}
 .tthw{display:flex;align-items:center;gap:2px}.tthi{font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:6px;padding:2px 4px;min-width:60px;width:100%}.tthi:focus,.tthi:hover{border-color:var(--line);color:var(--ink)}
@@ -488,8 +489,10 @@ let tt=null;
 const XLSXJS='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 function renderTT(){const ed=ED();
   const bar=ed?`<div class="ttbar">${tt?`${esc(tt.src||'')}${tt.src?' · ':''}${esc(tt.at||'')} 기준${tt.edited?` · 페이지에서 고침 ${esc(tt.edited)}`:''}`:''}<button type="button" class="mv" data-ttup>${tt?'엑셀 다시 올리기':'엑셀 올리기'}</button><span>칸을 누르면 바로 고칠 수 있어요. 엑셀을 다시 올리면 페이지에서 고친 내용은 덮어써져요.</span></div>`:'';
-  if(!tt||!(tt.sheets||[]).length){$('#list').innerHTML=bar+`<div class="grp"><div class="empty">타임테이블이 아직 없어요.</div></div>${ed?'<button type="button" class="ttadd" data-ttsadd>+ 표 추가</button>':''}`;return}
-  $('#list').innerHTML=bar+tt.sheets.map((sh,si)=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인'),nc=sh.header.length;
+  const ims=(tt&&tt.imgs)||[],up=ed&&assets;
+  const imsec=ims.length||up?`<section class="grp ttims"${up?' data-dz="t:"':''}><h2>배치도 · 참고 그림<span>${ims.length}개</span></h2><div class="ttimw">${ims.map((m,i)=>`<figure class="ttim"><button type="button" class="th" data-img="${esc(m.id)}" data-cap="${esc(m.name||'')}" aria-label="${esc(m.name||'그림')} 크게 보기"><img src="${esc(BLOB(m.id))}" alt="${esc(m.name||'')}" loading="lazy"></button><figcaption>${esc(m.name||'')}${ed?` <button type="button" class="ttx" data-ttidel="${i}" aria-label="${esc(m.name||'그림')} 삭제">×</button>`:''}</figcaption></figure>`).join('')}${up?`<button type="button" class="up" data-ttiup>+ 그림 올리기 (끌어다 놓아도 돼요)</button>`:''}</div></section>`:'';
+  if(!tt||!(tt.sheets||[]).length){$('#list').innerHTML=bar+imsec+`<div class="grp"><div class="empty">타임테이블이 아직 없어요.</div></div>${ed?'<button type="button" class="ttadd" data-ttsadd>+ 표 추가</button>':''}`;return}
+  $('#list').innerHTML=bar+imsec+tt.sheets.map((sh,si)=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인'),nc=sh.header.length;
     const head=ed?`<h2 class="tth2"><input class="ttti" data-ttt="${si}" value="${esc(sh.title||sh.name)}" aria-label="표 제목"><span><button type="button" class="rm" data-ttsdel="${si}">표 삭제</button></span></h2>`:`<h2>${esc(sh.title||sh.name)}<span>${esc(sh.name)}</span></h2>`;
     const th=sh.header.map((h,ci)=>ed?`<th><div class="tthw"><input class="tthi" data-tth="${si}:${ci}" value="${esc(h)}" aria-label="칸 이름"><button type="button" class="ttx" data-ttcdel="${si}:${ci}" title="이 칸 삭제" aria-label="${esc(h)} 칸 삭제">×</button></div></th>`:`<th>${esc(h)}</th>`).join('')+(ed?`<th class="tta"><button type="button" class="mv" data-ttcadd="${si}">+ 칸</button></th>`:'');
     const body=sh.rows.map((r,ri)=>`<tr${ck>=0&&r[ck]?' class="done"':''}>${sh.header.map((h,ci)=>ci===ck?`<td class="ck"><input type="checkbox" data-ttck="${si}:${ri}:${ci}"${r[ci]?' checked':''}${ed?'':' disabled'} aria-label="${esc(r[0]||'')} 확인"></td>`
@@ -497,6 +500,10 @@ function renderTT(){const ed=ED();
       :`<td${ci===0?' class="k"':''}>${esc(r[ci]||'').replace(/ → /g,' →<br>').replace(/\n/g,'<br>')}</td>`).join('')}${ed?`<td class="tta"><span class="ttra"><button type="button" data-ttrmv="${si}:${ri}:-1" title="위로">▲</button><button type="button" data-ttrmv="${si}:${ri}:1" title="아래로">▼</button><button type="button" data-ttrins="${si}:${ri}" title="아래에 줄 추가">＋</button><button type="button" class="ttx" data-ttrdel="${si}:${ri}" title="줄 삭제">×</button></span></td>`:''}</tr>`).join('');
     return `<section class="grp">${head}<div class="ttw"><table class="tt${ed?' ed':''}"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>${ed?`<div class="ttfoot"><button type="button" class="mv" data-ttradd="${si}">+ 줄 추가</button></div>`:''}</section>`}).join('')+(ed?'<button type="button" class="ttadd" data-ttsadd>+ 표 추가</button>':'')}
 const ttSave=async msg=>{tt.edited=nowStamp();try{await db.doc('meta/tt').set(tt);if(msg)$('#msg').textContent=msg}catch(err){failMsg(err,'저장');render()}};
+const ttImgIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*',multiple:true});
+const ttImgUp=async fs=>{fs=[...fs].filter(f=>/^image\//.test(f.type));if(!fs.length){$('#msg').textContent='그림 파일만 올릴 수 있어요.';return}if(!assets){$('#msg').textContent='파일을 올릴 권한이 없어요.';return}
+  $('#msg').textContent='그림 올리는 중이에요…';try{tt=tt||{src:'',at:nowStamp(),sheets:[]};const L=(tt.imgs||[]).slice();for(const f of fs){const res=await assets.upload(f);L.push({id:res.id,name:(f.name||'').replace(/\.[^.]+$/,'')})}tt.imgs=L;await ttSave('그림을 넣었어요.');render()}catch(err){failMsg(err,'업로드')}};
+ttImgIn.addEventListener('change',()=>{if(ttImgIn.files.length)ttImgUp(ttImgIn.files);ttImgIn.value=''});
 const ttArm=(b,lab)=>{if(b.dataset.arm)return true;b.dataset.arm='1';const t=b.textContent;b.textContent=lab;b.classList.add('arm');setTimeout(()=>{if(b.isConnected){delete b.dataset.arm;b.textContent=t;b.classList.remove('arm')}},3000);return false};
 const ttIn=Object.assign(document.createElement('input'),{type:'file',accept:'.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 ttIn.addEventListener('change',async()=>{const f=ttIn.files[0];ttIn.value='';if(!f)return;$('#msg').textContent='엑셀을 읽는 중이에요…';
@@ -599,6 +606,8 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
     const [id,i]=sd.dataset.secdel.split(':'),r=rows.find(x=>x.id===id);if(!r)return;const L=(r.sdocs||[]).slice(),gone=L.splice(+i,1)[0];
     try{await db.doc('items/'+id).update({sdocs:L});if(gone)await secB().remove([gone.f]);$('#msg').textContent='서류를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
   if(e.target.closest('[data-ttup]')){ttIn.click();return}
+  if(e.target.closest('[data-ttiup]')){ttImgIn.click();return}
+  {const b=e.target.closest('[data-ttidel]');if(b&&ED()&&tt){if(!ttArm(b,'삭제'))return;const L=(tt.imgs||[]).slice(),gone=L.splice(+b.dataset.ttidel,1)[0];tt.imgs=L;await ttSave('그림을 지웠어요.');render();if(gone&&assets&&!/^files\//.test(gone.id)){try{await assets.delete(gone.id)}catch(_){}}return}}
   {const b=e.target.closest('[data-ttradd],[data-ttrins],[data-ttrmv],[data-ttrdel],[data-ttcadd],[data-ttcdel],[data-ttsadd],[data-ttsdel]');if(b&&ED()){const d=b.dataset,n=x=>x.split(':').map(Number);
     if(d.ttsadd!=null){tt=tt||{src:'',at:nowStamp(),sheets:[]};tt.sheets.push({name:'새 표',title:'새 표',header:['항목','내용','비고'],rows:[['','','']]});return ttSave('표를 추가했어요.')}
     if(d.ttsdel!=null){if(!ttArm(b,'정말 삭제'))return;tt.sheets.splice(+d.ttsdel,1);return ttSave('표를 지웠어요.')}
@@ -1002,7 +1011,7 @@ $('#list').addEventListener('dragover',e=>{const z=rczOf(e);if(!z||!e.dataTransf
 $('#list').addEventListener('dragleave',e=>{const z=rczOf(e);const box=z&&(z.closest('.row')||z);if(z&&!box.contains(e.relatedTarget))z.classList.remove('over')});
 $('#list').addEventListener('drop',e=>{const z=rczOf(e);if(!z)return;e.preventDefault();z.classList.remove('over');const fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;
   if(z.dataset.rcz){rcUpload(z.dataset.rcz,fs);return}const [t,...k]=z.dataset.dz.split(':');
-  if(t==='p')pimUpload(k[0],fs[0]);else if(t==='d')proofUpload(k[0],[...fs].filter(f=>/^image\//.test(f.type)||isPdf(f)));else if(t==='v')vjUpload(k.join(':'),fs[0]);else if(t==='s')secUpload(k[0],k[1],fs)});
+  if(t==='p')pimUpload(k[0],fs[0]);else if(t==='d')proofUpload(k[0],[...fs].filter(f=>/^image\//.test(f.type)||isPdf(f)));else if(t==='v')vjUpload(k.join(':'),fs[0]);else if(t==='s')secUpload(k[0],k[1],fs);else if(t==='t')ttImgUp(fs)});
 addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files'))e.preventDefault()});addEventListener('drop',e=>{if(!e.target.closest||!(e.target.closest('.row')||e.target.closest('[data-rcz]')||e.target.closest('[data-dz]')))e.preventDefault()});
 render();
 (async()=>{
