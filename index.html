@@ -147,6 +147,10 @@ select:disabled{opacity:.85}
 .vgrip{cursor:grab;font-size:20px;line-height:1;color:var(--muted);padding:2px 4px;user-select:none}.vgrip:active{cursor:grabbing}
 .vmv{display:inline-flex;flex-direction:column;gap:1px}.vmv button{font:inherit;font-size:9px;line-height:1;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:4px;padding:2px 5px;cursor:pointer}.vmv button:hover{color:var(--ink)}
 .vjc.vdrag{opacity:.4}.vjc.vbefore{box-shadow:inset 0 3px 0 var(--accent)}.vjc.vafter{box-shadow:inset 0 -3px 0 var(--accent)}
+.ttbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}.ttbar .mv{color:var(--accent)}
+.ttw{overflow-x:auto}.tt{width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.5}.tt th,.tt td{border-top:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+.tt th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--bg);white-space:nowrap}.tt td.k{font-weight:700;white-space:nowrap}.tt td.ck{text-align:center;width:56px}.tt td.ck input{width:18px;height:18px;accent-color:var(--done)}
+.tt tr.done td{color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
@@ -232,6 +236,7 @@ select.sx{width:auto;font-size:12px;padding:2px 4px;border-left-width:1px;margin
       <button type="button" data-k="rent" aria-pressed="false">대여</button>
       <button type="button" data-k="buy" aria-pressed="false">구매</button>
       <button type="button" data-k="vj" aria-pressed="false">VJ</button>
+      <button type="button" data-k="tt" aria-pressed="false">타임테이블</button>
       <button type="button" data-k="todo" aria-pressed="false">할 일</button>
     </div>
     <div class="acts" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="open-only"> 아직 안 끝난 것만</label><button type="button" class="prbtn" id="printbtn">🖨 인쇄용 PDF</button><button type="button" class="addbtn" id="addbtn" hidden>+ 항목 추가</button></div>
@@ -471,6 +476,21 @@ async function secUpload(id,k,files){if(!SEC.key&&!(await secUnlock()))return;co
     await db.doc('items/'+id).update({sdocs:L});secArm();$('#msg').textContent=`${r.name}에 ${SECK[k]} ${files.length}개를 잠가서 넣었어요.`}catch(err){failMsg(err,'서류 올리기를')}}
 const secIn=Object.assign(document.createElement('input'),{type:'file',accept:'image/*,application/pdf,.pdf',multiple:true});let secFor=null;
 secIn.addEventListener('change',()=>{if(secFor&&secIn.files.length){const [id,k]=secFor.split(':');secUpload(id,k,secIn.files)}secIn.value=''});
+// ── 타임테이블 (음향·중계·VJ): meta/tt = {src,at,sheets:[{name,title,header,rows}]}. 엑셀을 다시 올리면 통째로 바뀜. '확인' 칸은 체크
+let tt=null;
+const XLSXJS='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function renderTT(){const ed=ED();
+  const bar=ed?`<div class="ttbar">${tt?`${esc(tt.src||'')} · ${esc(tt.at||'')} 기준`:''}<button type="button" class="mv" data-ttup>${tt?'엑셀 다시 올리기':'엑셀 올리기'}</button><span>(.xlsx · 시트마다 표 하나로 보여요)</span></div>`:'';
+  if(!tt||!(tt.sheets||[]).length){$('#list').innerHTML=bar+'<div class="grp"><div class="empty">타임테이블이 아직 없어요.</div></div>';return}
+  $('#list').innerHTML=bar+tt.sheets.map((sh,si)=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인');
+    return `<section class="grp"><h2>${esc(sh.title||sh.name)}<span>${esc(sh.name)}</span></h2><div class="ttw"><table class="tt"><thead><tr>${sh.header.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${sh.rows.map((r,ri)=>`<tr${ck>=0&&r[ck]?' class="done"':''}>${sh.header.map((h,ci)=>ci===ck?`<td class="ck"><input type="checkbox" data-ttck="${si}:${ri}:${ci}"${r[ci]?' checked':''}${ed?'':' disabled'} aria-label="${esc(r[0]||'')} 확인"></td>`:`<td${ci===0?' class="k"':''}>${esc(r[ci]||'').replace(/ → /g,' →<br>').replace(/\n/g,'<br>')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`}).join('')}
+const ttIn=Object.assign(document.createElement('input'),{type:'file',accept:'.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ttIn.addEventListener('change',async()=>{const f=ttIn.files[0];ttIn.value='';if(!f)return;$('#msg').textContent='엑셀을 읽는 중이에요…';
+  try{await loadJS(XLSXJS);const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    const sheets=wb.SheetNames.map(n=>{let rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false}).map(r=>r.map(x=>String(x).trim())).filter(r=>r.some(Boolean));
+      let title='';if(rows.length&&rows[0].filter(Boolean).length===1){title=rows[0].find(Boolean);rows=rows.slice(1)}
+      const header=(rows[0]||[]).map(String),w=header.length;return {name:n,title,header,rows:rows.slice(1).map(r=>Array.from({length:w},(_,i)=>r[i]||''))}}).filter(x=>x.header.length);
+    tt={src:f.name,at:nowStamp(),sheets};await db.doc('meta/tt').set(tt);$('#msg').textContent=`‘${f.name}’ 시트 ${sheets.length}개를 올렸어요.`}catch(err){failMsg(err,'엑셀 올리기를')}});
 // 구매 탭: 상태별로 골라 보기 (전체 / 미구매 / 결제 완료 / 입고 완료)
 const stOk=r=>r.kind!=='buy'||stF===null||(r.st||0)===stF;
 function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<button type="button" data-stf="${v}" aria-pressed="${String(v)===String(stF??'')}">${col?`<i style="background:var(${col})"></i>`:''}${lab} <b>${n}</b></button>`;
@@ -478,8 +498,9 @@ function stfHTML(){const bs=rows.filter(r=>r.kind==='buy'),b=(v,lab,n,col)=>`<bu
 function restoreFocus(fm){if(!fm)return;const t=document.querySelector(fm.q);if(t){t.value=fm.v;t.focus();try{t.setSelectionRange(fm.a,fm.b)}catch(e){}}}
 function render(){
   const fa=document.activeElement,fk=fa&&fa.dataset&&['memo','vnf','vf','tdh','tdt','tdw','tel'].find(k=>fa.dataset[k]!=null),fm=fk?{q:`[data-${fk}="${fa.dataset[fk]}"]`,v:fa.value,a:fa.selectionStart,b:fa.selectionEnd}:null;
-  summary();const isVJ=kind==='vj',isTD=kind==='todo';$('#mapc').hidden=isVJ||isTD;$('#addbtn').hidden=isVJ||isTD||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
+  summary();const isVJ=kind==='vj',isTD=kind==='todo';$('#mapc').hidden=isVJ||isTD||kind==='tt';$('#addbtn').hidden=isVJ||isTD||kind==='tt'||!ED();if(isVJ){if(!$('#addf').hidden)closeForm();renderVJ();return}
   if(isTD){if(!$('#addf').hidden)closeForm();renderTodo();restoreFocus(fm);return}
+  if(kind==='tt'){if(!$('#addf').hidden)closeForm();renderTT();return}
   renderMap();
   let rs=rows.filter(r=>kind==='all'||r.kind===kind);
   if(openOnly) rs=rs.filter(r=>!doneOf(r));
@@ -508,6 +529,7 @@ $('#list').addEventListener('submit',async e=>{if(e.target.id!=='tdadd')return;e
 $('#list').addEventListener('change',async e=>{if(!db)return;
   const tc=e.target.closest('[data-tdck]');if(tc){const id=tc.dataset.tdck,dn=tc.checked;try{await db.doc('meta/'+id).update({done:dn,doneAt:dn?nowStamp():''});$('#msg').textContent=dn?'완료했어요. 아래 칸에 어떻게 완료했는지 적어 주세요.':'다시 할 일로 돌렸어요.';if(dn)setTimeout(()=>{const h=document.querySelector(`[data-tdh="${id}"]`);if(h)h.focus()},400)}catch(err){failMsg(err,'저장');render()}return}
   const rd=e.target.closest('[data-rdo]');if(rd){try{await db.doc('items/'+rd.dataset.rdo).update({radio:rd.checked});$('#msg').textContent=rd.checked?'무전기 사용으로 표시했어요.':'무전기 표시를 뺐어요.'}catch(err){failMsg(err,'저장');render()}return}
+  const tk=e.target.closest('[data-ttck]');if(tk&&tt){const [si,ri,ci]=tk.dataset.ttck.split(':').map(Number);tt.sheets[si].rows[ri][ci]=tk.checked?'✓':'';try{await db.doc('meta/tt').set(tt);$('#msg').textContent=tk.checked?'확인했어요.':'확인 표시를 뺐어요.'}catch(err){failMsg(err,'저장');render()}return}
   const sz=e.target.closest('[data-sz]');if(sz){try{await db.doc('items/'+sz.dataset.sz).update({size:sz.value});$('#msg').textContent=sz.value?`옷 사이즈 ${sz.value}로 저장했어요.`:'옷 사이즈를 비웠어요.'}catch(err){failMsg(err,'저장')}return}
   const tl=e.target.closest('[data-tel]');if(tl){try{await db.doc('items/'+tl.dataset.tel).update({tel:tl.value.trim()});$('#msg').textContent='연락처를 저장했어요.'}catch(err){failMsg(err,'저장')}return}
   for(const [a,f] of [['tdt','text'],['tdh','how'],['tdw','who']]){const el=e.target.closest(`[data-${a}]`);if(el){try{await db.doc('meta/'+el.dataset[a]).update({[f]:el.value.trim()});$('#msg').textContent='저장했어요.'}catch(err){failMsg(err,'저장')}return}}
@@ -557,6 +579,7 @@ $('#list').addEventListener('click',async e=>{const u=e.target.closest('[data-up
   const sd=e.target.closest('[data-secdel]');if(sd){if(!sd.dataset.arm){sd.dataset.arm='1';sd.textContent='삭제';sd.classList.add('arm');setTimeout(()=>{if(sd.isConnected){delete sd.dataset.arm;sd.textContent='×';sd.classList.remove('arm')}},3000);return}
     const [id,i]=sd.dataset.secdel.split(':'),r=rows.find(x=>x.id===id);if(!r)return;const L=(r.sdocs||[]).slice(),gone=L.splice(+i,1)[0];
     try{await db.doc('items/'+id).update({sdocs:L});if(gone)await secB().remove([gone.f]);$('#msg').textContent='서류를 지웠어요.'}catch(err){failMsg(err,'삭제')}return}
+  if(e.target.closest('[data-ttup]')){ttIn.click();return}
   const sf=e.target.closest('[data-stf]');if(sf){stF=sf.dataset.stf===''?null:+sf.dataset.stf;render();return}
   const gb=e.target.closest('[data-grab]');if(gb){const r=rows.find(x=>x.id===gb.dataset.grab);if(!r)return;try{localStorage.setItem('grabFor',JSON.stringify({id:r.id,t:Date.now()}))}catch(_){}
     if(bmkUsed){window.open(linksOf(r)[0],'_blank');return}grabHelp(r);return}
@@ -961,6 +984,7 @@ render();
     if(cw===false){el.style.cssText='color:#c92a2a;font-weight:700';$('#msg').textContent=meInfo?`${meInfo} 계정은 편집자 명단에 없어서 보기만 돼요.`:'지금은 보기 전용이에요. 수정하려면 위쪽에 편집 비밀번호를 넣어 주세요.'}}catch(_){}});
   db.collection('vj').orderBy('o').onSnapshot(s=>{vj=s.docs.map(d=>({id:d.id,...d.data()}));if(vjEdit&&!vj.some(c=>c.id===vjEdit))vjEdit=null;if(vjEdit&&!vjDraft)vjDraft={...vj.find(c=>c.id===vjEdit)};render()},()=>{});
   db.collection('meta').orderBy('o').onSnapshot(s=>{todos=s.docs.filter(d=>d.id.startsWith('t-')).map(d=>({id:d.id,...d.data()}));render()},()=>{});
+  db.doc('meta/tt').onSnapshot(s=>{tt=s&&s.exists&&s.data?s.data():null;if(kind==='tt')render()},()=>{});
   db.doc('meta/rent').onSnapshot(s=>{const d=s&&s.exists&&s.data?s.data():null;rentRc=(d&&d.rcpts)||[];rentV=(d&&d.vendors)||[];render()},()=>{});
   db.collection('items').orderBy('o').onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()}));render();tryFill()},()=>{$('#msg').textContent='목록을 불러오지 못했어요.'});
 })();
