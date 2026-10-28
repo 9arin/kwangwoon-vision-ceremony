@@ -719,7 +719,7 @@ async function buildPrint(mode,sel,opn){sel=sel||new Set(PRALL);const has=k=>sel
   const secs0=KS.map(k=>{kind=k;mapView='plaza';renderMap();const svg=$('#pins').innerHTML;
     const pk=rows.some(r=>r.kind===k&&(r.pins||[]).some(p=>pm(p)!=='plaza'))?['b2','b3'].map(m=>{mapView=m;renderMap();return `<div><div class="plan"><img src="${PK[m]}" alt=""><svg viewBox="0 0 1672 941">${$('#pins').innerHTML}</svg></div></div>`}).join(''):'';mapView='plaza';
     const lg=ST[k].map((x,i)=>`<span><i style="background:var(${CL[k][i]})"></i>${x}</span>`).join('');
-    const rs=rows.filter(r=>r.kind===k&&!(opn&&doneOf(r)));
+    const rs=rows.filter(r=>r.kind===k&&!(opn&&doneOf(r))&&!(isProto(r)&&!has('staff:proto')));
     const head=k==='staff'?'<th>표시</th><th>맡은 일</th><th>담당</th><th>위치</th><th>할 일</th><th>상태</th><th>확인</th>':`<th>표시</th>${k==='design'?'<th>시안</th>':''}<th>구분</th><th>항목</th><th>수량</th><th>위치·메모</th>${k==='design'?'<th>인쇄 업체</th>':''}<th>상태</th><th>확인</th>`;
     const body=rs.map(r=>{const pl=(r.pins||[]).map(p=>p.l||autoLab(r)).join(', ')||(r.ops?'운영텐트 보관':'—');
       return k==='staff'?`<tr><td class="c">${esc(r.code||'')}</td><td><b>${esc(r.name)}</b></td><td>${isProto(r)?'<span class="m">광운대 의전</span>':r.who?`<b>${esc(r.who)}</b>${r.sex?` (${esc(r.sex)})`:''}${r.size?` · 옷 ${esc(r.size)}`:''}${r.radio?' · 📻':''}${ED()&&r.tel?`<br><span class="m">${esc(r.tel)}</span>`:''}`:'<span class="m">미정</span>'}</td><td>${esc(r.loc||'')}</td><td class="s">${esc(r.note||'')}</td><td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`
@@ -794,7 +794,7 @@ async function buildPDF(sel,opn){
       if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.86),'JPEG',0,0,297,210,undefined,'FAST')}
     return {blob:pdf.output('blob'),n:pages.length,stamp:P.stamp}}
   finally{root.remove()}}
-const PRG=[['staff','인력',[['map','배치 도면'],['list','목록 표']]],['design','디자인물',[['map','위치 도면'],['gal','한눈에 보기 (시안 그림)'],['list','목록 표']]],['rent','대여',[['map','위치 도면'],['list','목록 표']]],['buy','구매',[['map','위치 도면'],['list','목록 표']]],['tt','타임테이블',[['img','배치도 · 참고 그림'],['list','표']]]];
+const PRG=[['staff','인력',[['map','배치 도면'],['list','목록 표'],['proto','목록 표에 광운대 의전 넣기']]],['design','디자인물',[['map','위치 도면'],['gal','한눈에 보기 (시안 그림)'],['list','목록 표']]],['rent','대여',[['map','위치 도면'],['list','목록 표']]],['buy','구매',[['map','위치 도면'],['list','목록 표']]],['tt','타임테이블',[['img','배치도 · 참고 그림'],['list','표']]]];
 const PRALL=PRG.filter(g=>g[0]!=='tt').flatMap(g=>g[2].map(x=>g[0]+':'+x[0]));
 function printPick(){return new Promise(ok=>{let saved=null;try{saved=JSON.parse(localStorage.getItem('prSel')||'null')}catch(_){}const on=new Set(Array.isArray(saved)?saved:PRALL);
   const d=document.createElement('div');d.className='dlg';
