@@ -162,6 +162,7 @@ select:disabled{opacity:.85}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;max-width:calc(100% - 32px);box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .bmkl{display:inline-block;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:5px 14px;text-decoration:none;cursor:grab}
 
+.prg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:55vh;overflow:auto}.prg fieldset{border:1px solid var(--line);border-radius:8px;padding:6px 10px 8px;margin:0;display:grid;gap:4px}.prg legend{padding:0 4px}.prg label,.prop{display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}.prop{margin:10px 0 0}
 .dlg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:55;padding:16px}
 .dlgc{background:var(--paper);color:var(--ink);border-radius:14px;padding:20px 22px;max-width:440px;width:100%;display:grid;gap:12px;font-size:15px;line-height:1.55}
 .dlgc h3{margin:0;font-size:17px}.dlgc p{margin:0}.dlgc small{color:var(--muted);font-size:13px}
@@ -700,12 +701,13 @@ $('#addf').addEventListener('submit',async e=>{e.preventDefault();if(!db||!pend)
       ['name','who','qty','loc','note','code','link','vlink'].forEach(f=>$('#f-'+f).value='');pend.pins=[];pinsEd();renderMap()}}
   catch(err){failMsg(err,'저장')}});
 let dl=null;
-async function buildPrint(mode){
-  const keep=kind,KS=['staff','design','rent','buy'],T={staff:'인력 배치',design:'디자인물 위치',rent:'대여 물품 위치',buy:'구매 물품 위치'};
+async function buildPrint(mode,sel,opn){sel=sel||new Set(PRALL);const has=k=>sel.has(k);
+  const keep=kind,KS=['staff','design','rent','buy'].filter(k=>['map','list','gal'].some(x=>has(k+':'+x))),T={staff:'인력 배치',design:'디자인물 위치',rent:'대여 물품 위치',buy:'구매 물품 위치'};
   const blob=await (await fetch('plaza.jpg')).blob();
   const src=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(blob)});
   const now=new Date(),stamp=`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const IM={},ids=[...new Set(rows.filter(r=>r.kind==='design').flatMap(r=>r.imgs||[]))];let nd=0;
+  const IM={},ids=[...new Set(rows.filter(r=>r.kind==='design').flatMap(r=>r.imgs||[]))].filter(()=>has('design:list')||has('design:gal'));let nd=0;
+  const tims=has('tt:img')&&tt?(tt.imgs||[]):[];await Promise.all(tims.map(async m=>{try{const b=await (await fetch(BLOB(m.id))).blob(),bm=await createImageBitmap(b),sc=Math.min(1,2000/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.round(bm.width*sc);c.height=Math.round(bm.height*sc);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);IM[m.id]=c.toDataURL('image/jpeg',.9)}catch(e){IM[m.id]=null}}));
   await Promise.all(ids.map(async id=>{try{const b=await (await fetch(BLOB(id))).blob();if(!/^image\//.test(b.type)){IM[id]='pdf';return}
     const bm=await createImageBitmap(b),sc=Math.min(1,900/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.round(bm.width*sc);c.height=Math.round(bm.height*sc);
     const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);IM[id]=c.toDataURL('image/jpeg',.82)}catch(e){IM[id]=null}
@@ -713,16 +715,21 @@ async function buildPrint(mode){
   const pic=(id,cls)=>!id?`<div class="${cls} no">시안 없음</div>`:IM[id]==='pdf'?`<div class="${cls} no">PDF 시안</div>`:IM[id]?`<img class="${cls}" data-im="${id}" alt="">`:`<div class="${cls} no">불러오지 못함</div>`;
   const gallery=()=>{const ds=rows.filter(r=>r.kind==='design');return `<section class="gal"><h2>디자인물 한눈에 보기 <small>현장에서 이 그림을 보고 설치 위치를 맞춰 주세요 · ${ds.filter(r=>(r.imgs||[]).length).length}/${ds.length}종 시안 있음</small></h2><div class="cards">${ds.map(r=>{const im=r.imgs||[];
     return `<div class="card">${pic(im[0],'big')}${im.length>1?`<div class="more">${im.slice(1).map(i=>pic(i,'sm')).join('')}</div>`:''}<div class="cap"><span class="c">${esc(r.code||'')}</span> <b>${esc(r.name)}</b> <span class="q">${esc(r.qty||'')}</span></div><div class="lc">${esc(r.loc||'')}</div><div class="ck">☐ 설치 확인</div></div>`}).join('')}</div></section>`};
-  const keepMV=mapView,PK={};for(const m of ['b2','b3']){const b=await (await fetch(MAPS[m].img)).blob();PK[m]=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)})}
-  const secs=KS.map(k=>{kind=k;mapView='plaza';renderMap();const svg=$('#pins').innerHTML;
+  const keepMV=mapView,PK={};if(KS.some(k=>has(k+':map')))for(const m of ['b2','b3']){const b=await (await fetch(MAPS[m].img)).blob();PK[m]=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)})}
+  const secs0=KS.map(k=>{kind=k;mapView='plaza';renderMap();const svg=$('#pins').innerHTML;
     const pk=rows.some(r=>r.kind===k&&(r.pins||[]).some(p=>pm(p)!=='plaza'))?['b2','b3'].map(m=>{mapView=m;renderMap();return `<div><div class="plan"><img src="${PK[m]}" alt=""><svg viewBox="0 0 1672 941">${$('#pins').innerHTML}</svg></div></div>`}).join(''):'';mapView='plaza';
     const lg=ST[k].map((x,i)=>`<span><i style="background:var(${CL[k][i]})"></i>${x}</span>`).join('');
-    const rs=rows.filter(r=>r.kind===k);
+    const rs=rows.filter(r=>r.kind===k&&!(opn&&doneOf(r)));
     const head=k==='staff'?'<th>표시</th><th>맡은 일</th><th>담당</th><th>위치</th><th>할 일</th><th>상태</th><th>확인</th>':`<th>표시</th>${k==='design'?'<th>시안</th>':''}<th>구분</th><th>항목</th><th>수량</th><th>위치·메모</th>${k==='design'?'<th>인쇄 업체</th>':''}<th>상태</th><th>확인</th>`;
     const body=rs.map(r=>{const pl=(r.pins||[]).map(p=>p.l||autoLab(r)).join(', ')||(r.ops?'운영텐트 보관':'—');
       return k==='staff'?`<tr><td class="c">${esc(r.code||'')}</td><td><b>${esc(r.name)}</b></td><td>${isProto(r)?'<span class="m">광운대 의전</span>':r.who?`<b>${esc(r.who)}</b>${r.sex?` (${esc(r.sex)})`:''}${r.size?` · 옷 ${esc(r.size)}`:''}${r.radio?' · 📻':''}${ED()&&r.tel?`<br><span class="m">${esc(r.tel)}</span>`:''}`:'<span class="m">미정</span>'}</td><td>${esc(r.loc||'')}</td><td class="s">${esc(r.note||'')}</td><td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`
       :`<tr><td class="c">${esc(k==='design'?(r.code||pl):pl)}</td>${k==='design'?`<td class="th">${pic((r.imgs||[])[0],'tn')}</td>`:''}<td class="s">${esc(r.cat||'')}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.qty||'')}</td><td class="s">${esc([r.loc,r.note].filter(Boolean).join(' · '))}</td>${k==='design'?`<td class="s">${esc(r.vendor||'—')}</td>`:''}<td class="s">${ST[k][r.st||0]}</td><td class="box">☐</td></tr>`}).join('');
-    return `<section><h1>${T[k]} <small>비전선포식 · 10/29(목) 광운스퀘어 · ${stamp} 기준</small></h1><div class="plan"><img class="pz" alt=""><svg viewBox="0 0 1672 941">${svg}</svg></div><div class="lg">${lg}</div></section>${pk?`<section><h1>${T[k]} · 지하주차장 <small>왼쪽 지하 2층 · 오른쪽 지하 3층 (대략 그림)</small></h1><div class="pk">${pk}</div><div class="lg">${lg}</div></section>`:''}${k==='design'?gallery():''}<section class="tb"><h2>${T[k]} 목록 <small>${rs.length}건</small></h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`}).join('');
+    return `${has(k+':map')?`<section><h1>${T[k]} <small>비전선포식 · 10/29(목) 광운스퀘어 · ${stamp} 기준</small></h1><div class="plan"><img class="pz" alt=""><svg viewBox="0 0 1672 941">${svg}</svg></div><div class="lg">${lg}</div></section>${pk?`<section><h1>${T[k]} · 지하주차장 <small>왼쪽 지하 2층 · 오른쪽 지하 3층 (대략 그림)</small></h1><div class="pk">${pk}</div><div class="lg">${lg}</div></section>`:''}`:''}${k==='design'&&has('design:gal')?gallery():''}${has(k+':list')?`<section class="tb"><h2>${T[k]} 목록 <small>${rs.length}건</small></h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></section>`:''}`}).join('');
+  const ttx=v=>esc(v||'').replace(/\n/g,'<br>');
+  const ttsec=(tims.map(m=>`<section><h1>${esc(m.name||'배치도')} <small>비전선포식 · ${stamp} 기준</small></h1><div class="ttpi"><img class="ttpimg" data-im="${esc(m.id)}" alt=""></div></section>`).join(''))
+    +(has('tt:list')&&tt?(tt.sheets||[]).map(sh=>{const ck=sh.header.findIndex(h=>String(h).trim()==='확인');const R=sh.rows.filter(r=>!(opn&&ck>=0&&r[ck]));
+      return `<section class="tb"><h2>${esc(sh.title||sh.name)} <small>${stamp} 기준</small></h2><table><thead><tr>${sh.header.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr>${sh.header.map((h,ci)=>ci===ck?`<td class="box">${r[ci]?'☑':'☐'}</td>`:`<td${ci===0?' class="c"':''}>${ttx(r[ci])}</td>`).join('')}</tr>`).join('')}</tbody></table></section>`}).join(''):'');
+  const secs=secs0+ttsec;
   kind=keep;mapView=keepMV;render();
   if(mode==='parts')return{secs,src,IM,stamp};
   const css=`:root{--todo:#9a8f90;--done:#1f7a52;--prog:#b7791f;--fin:#2b5fa8}*{box-sizing:border-box}body{margin:0;font-family:"Apple SD Gothic Neo","Malgun Gothic","IBM Plex Sans KR",sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -736,7 +743,7 @@ table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.35}th,td{
 .big{width:100%;height:33mm;object-fit:contain;background:#f3f3f3;border-radius:4px}.no{display:flex;align-items:center;justify-content:center;color:#777;font-size:15px;border:1px dashed #bbb;background:#fafafa}
 .more{display:flex;gap:4px}.sm{width:16mm;height:12mm;object-fit:contain;background:#f3f3f3;border-radius:3px}
 .cap{font-size:18px;line-height:1.3}.cap .q{color:#444;font-size:15px}.lc{font-size:15px;color:#222;line-height:1.3}.ck{font-size:15px;margin-top:auto;color:#222}
-td.th{width:34mm;padding:3px}.tn{display:block;width:32mm;height:22mm;object-fit:contain;background:#f3f3f3}div.tn{font-size:13px}.s{color:#222;font-size:14.5px}.m{color:#666}.box{text-align:center;font-size:22px;width:44px}
+.ttpi{text-align:center}.ttpimg{max-width:100%;max-height:180mm}td.th{width:34mm;padding:3px}.tn{display:block;width:32mm;height:22mm;object-fit:contain;background:#f3f3f3}div.tn{font-size:13px}.s{color:#222;font-size:14.5px}.m{color:#666}.box{text-align:center;font-size:22px;width:44px}
 @media screen{body{padding:16px;background:#ddd}section{background:#fff;padding:12px;margin:0 auto 16px;max-width:1100px}}`;
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>비전선포식 현장 배치도 ${stamp}</title><style>${css}</style></head><body>${secs}<script>const S=${JSON.stringify(src)},IM=${JSON.stringify(IM)};document.querySelectorAll('img.pz').forEach(i=>i.src=S);document.querySelectorAll('img[data-im]').forEach(i=>i.src=IM[i.dataset.im]);addEventListener('load',()=>setTimeout(()=>print(),300));<\/script></body></html>`}
 // ── 인쇄용 PDF ──
@@ -754,7 +761,7 @@ const PDFCSS=`#pdfroot{position:fixed;left:-20000px;top:0;width:1123px;z-index:-
 #pdfroot .more{display:flex;gap:4px}#pdfroot .sm{width:60px;height:45px;object-fit:contain;background:#f3f3f3;border-radius:3px}
 #pdfroot .cap{font-size:18px;line-height:1.3}#pdfroot .cap .q{color:#444;font-size:15px}#pdfroot .lc{font-size:15px;color:#222;line-height:1.3}#pdfroot .ck{font-size:15px;margin-top:auto;color:#222}
 #pdfroot .fit{display:block;text-align:center;overflow:hidden;font-size:0}#pdfroot .fit img{max-width:100%;max-height:100%;width:auto;height:auto;display:inline-block;vertical-align:middle}#pdfroot .big.fit{line-height:125px}#pdfroot .sm.fit{line-height:45px}#pdfroot .tn.fit{line-height:83px}
-#pdfroot td.th{width:128px;padding:3px}#pdfroot .tn{display:block;width:120px;height:83px;object-fit:contain;background:#f3f3f3}#pdfroot div.tn{font-size:13px}`;
+#pdfroot .ttpi{text-align:center;height:690px;line-height:690px;font-size:0}#pdfroot .ttpimg{max-width:100%;max-height:100%;vertical-align:middle}#pdfroot td.th{width:128px;padding:3px}#pdfroot .tn{display:block;width:120px;height:83px;object-fit:contain;background:#f3f3f3}#pdfroot div.tn{font-size:13px}`;
 function fixSvg(svg){svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
   svg.querySelectorAll('[style]').forEach(e=>e.setAttribute('style',e.getAttribute('style').replace(/var\((--[\w-]+)\)/g,(m,v)=>PCOL[v]||'#888')));
   svg.querySelectorAll('g.pin').forEach(g=>{const r=g.querySelector('rect');if(!r)return;const cx=+r.getAttribute('x')+ +r.getAttribute('width')/2,cy=+r.getAttribute('y')+ +r.getAttribute('height')/2;g.setAttribute('transform',`translate(${cx} ${cy}) scale(1.2) translate(${-cx} ${-cy})`)});
@@ -769,10 +776,10 @@ function paginate(root,srcSecs){const pages=[];const newPg=()=>{const p=document
       if(tbl){const t=document.createElement('table');t.appendChild(tbl.tHead.cloneNode(true));box=document.createElement('tbody');t.appendChild(box);p.appendChild(t)}else{box=document.createElement('div');box.className='cards';p.appendChild(box)}};
     start();items.forEach(it=>{box.appendChild(it);if(over(p)&&box.children.length>1){box.removeChild(it);cont=true;start();box.appendChild(it)}})});
   return pages}
-async function buildPDF(){
+async function buildPDF(sel,opn){
   $('#msg').textContent='PDF 도구를 불러오는 중이에요…';
   await loadJS('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');await loadJS('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-  const P=await buildPrint('parts');
+  const P=await buildPrint('parts',sel,opn);
   let st=document.getElementById('pdfcss');if(!st){st=document.createElement('style');st.id='pdfcss';st.textContent=PDFCSS;document.head.appendChild(st)}
   const root=document.createElement('div');root.id='pdfroot';document.body.appendChild(root);
   try{const tmp=document.createElement('div');tmp.innerHTML=P.secs;
@@ -787,10 +794,27 @@ async function buildPDF(){
       if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.86),'JPEG',0,0,297,210,undefined,'FAST')}
     return {blob:pdf.output('blob'),n:pages.length,stamp:P.stamp}}
   finally{root.remove()}}
-$('#printbtn').addEventListener('click',async()=>{const b=$('#printbtn');if(!rows.length)return;b.disabled=true;
-  try{if(!dl){$('#msg').textContent='이 화면에서는 파일을 내려받을 수 없어요. claude.ai에서 열어 주세요.';return}
-    const out=await buildPDF();const d=new Date(),fn=`비전선포식_현장배치도_${d.getMonth()+1}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.pdf`;
-    $('#msg').textContent='저장 창을 여는 중이에요…';await dl.save({filename:fn,data:out.blob});$('#msg').textContent=`PDF ${out.n}쪽을 저장했어요 (A4 가로 · 인력→디자인→대여→구매, 도면 + 체크리스트).`}
+const PRG=[['staff','인력',[['map','배치 도면'],['list','목록 표']]],['design','디자인물',[['map','위치 도면'],['gal','한눈에 보기 (시안 그림)'],['list','목록 표']]],['rent','대여',[['map','위치 도면'],['list','목록 표']]],['buy','구매',[['map','위치 도면'],['list','목록 표']]],['tt','타임테이블',[['img','배치도 · 참고 그림'],['list','표']]]];
+const PRALL=PRG.filter(g=>g[0]!=='tt').flatMap(g=>g[2].map(x=>g[0]+':'+x[0]));
+function printPick(){return new Promise(ok=>{let saved=null;try{saved=JSON.parse(localStorage.getItem('prSel')||'null')}catch(_){}const on=new Set(Array.isArray(saved)?saved:PRALL);
+  const d=document.createElement('div');d.className='dlg';
+  d.innerHTML=`<div class="dlgc" role="dialog" aria-modal="true" aria-label="인쇄할 것 고르기"><h3>인쇄할 것 고르기</h3><p class="pn" style="margin:0 0 8px">체크한 것만 PDF에 들어가요. 고른 건 다음에도 기억해요.</p>
+    <div class="prg">${PRG.map(([k,lab,xs])=>`<fieldset><legend><label><input type="checkbox" data-prall="${k}"> <b>${lab}</b></label></legend>${xs.map(([x,l])=>`<label><input type="checkbox" value="${k}:${x}"${on.has(k+':'+x)?' checked':''}> ${l}</label>`).join('')}</fieldset>`).join('')}</div>
+    <label class="prop"><input type="checkbox" data-propen${openOnly?' checked':''}> 표에는 아직 안 끝난 것만 넣기</label>
+    <div class="acts"><button type="button" data-x>닫기</button><button type="button" class="pri" data-ok>PDF 만들기</button></div></div>`;
+  document.body.appendChild(d);const boxes=()=>[...d.querySelectorAll('input[value]')];
+  const sync=()=>d.querySelectorAll('[data-prall]').forEach(a=>{const bs=boxes().filter(b=>b.value.startsWith(a.dataset.prall+':')),n=bs.filter(b=>b.checked).length;a.checked=n===bs.length;a.indeterminate=n>0&&n<bs.length});sync();
+  const close=v=>{d.remove();ok(v)};
+  d.addEventListener('change',e=>{const a=e.target.closest('[data-prall]');if(a)boxes().filter(b=>b.value.startsWith(a.dataset.prall+':')).forEach(b=>b.checked=a.checked);sync()});
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]'))return close(null);if(!e.target.closest('[data-ok]'))return;
+    const sel=boxes().filter(b=>b.checked).map(b=>b.value);if(!sel.length){toast('하나 이상 골라 주세요.');return}
+    try{localStorage.setItem('prSel',JSON.stringify(sel))}catch(_){}close({sel:new Set(sel),opn:d.querySelector('[data-propen]').checked})});
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')close(null)});d.querySelector('[data-ok]').focus()})}
+$('#printbtn').addEventListener('click',async()=>{const b=$('#printbtn');if(!rows.length)return;
+  if(!dl){$('#msg').textContent='이 화면에서는 파일을 내려받을 수 없어요. claude.ai에서 열어 주세요.';return}
+  const pk=await printPick();if(!pk)return;b.disabled=true;
+  try{const out=await buildPDF(pk.sel,pk.opn);const d=new Date(),fn=`비전선포식_현장배치도_${d.getMonth()+1}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.pdf`;
+    $('#msg').textContent='저장 창을 여는 중이에요…';await dl.save({filename:fn,data:out.blob});$('#msg').textContent=`PDF ${out.n}쪽을 저장했어요 (A4 가로 · 고른 것만).`}
   catch(err){$('#msg').textContent=err&&err.code==='declined'?'저장을 취소했어요.':err&&err.message==='lib'?'PDF 도구를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.':'PDF를 만들지 못했어요 ('+(err&&(err.code||err.message)||'오류')+').'}
   finally{b.disabled=false}});
 // ── VJ 큐시트 ──
